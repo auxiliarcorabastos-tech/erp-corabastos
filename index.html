@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ERP Corabastos — V4 (Supabase)</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button id="btnMenu" class="primary" style="background:transparent;border:0;color:#fff">☰</button>
+    <div style="font-weight:700;font-size:18px">ERP Corabastos</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div id="headerUser" class="small"></div>
+    <button id="btnLogout" class="primary" style="background:#dc2626;border:0;padding:6px 10px;display:none">Cerrar sesión</button>
+  </div>
+</header>
+<div class="app">
+  <aside id="sidebar">
+    <button data-sec="dashboard">Dashboard</button>
+    <button data-sec="fundaciones">Fundaciones</button>
+    <button data-sec="items">Items</button>
+    <button data-sec="conductores">Conductores</button>
+    <button data-sec="recibos">Pedidos</button>
+    <button data-sec="search">Buscar</button>
+    <hr style="border-color:rgba(255,255,255,0.04);opacity:.06">
+    <button data-sec="usuarios">Mi Cuenta</button>
+    <button data-sec="admin_users">Usuarios (Admin)</button>
+    <button data-sec="auditoria">Auditoría</button>
+    <button data-sec="seguimiento">Seguimiento</button>
+    <button data-sec="roles">Gestión Roles</button>
+  </aside>
+  <main id="main">
+
+    <section id="dashboard" class="card">
+      <h2>Bienvenido</h2>
+      <p class="small">Versión conectada a Supabase. Use el menú lateral para navegar. Inicie sesión cuando se le solicite.</p>
+    </section>
+
+    <section id="fundaciones" class="card hidden">
+      <h2>Fundaciones</h2>
+      <div class="card">
+        <h3>Crear Fundación</h3>
+        <label>NIT</label><input id="f_nit">
+        <label>Nombre</label><input id="f_name">
+        <div style="margin-top:8px"><button id="btnFundCreate" class="primary">Crear Fundación</button></div>
+      </div>
+
+      <div class="card">
+        <h3>Añadir Punto de Envío</h3>
+        <label>Fundación</label><select id="selFund"></select>
+        <label>Barrio</label><input id="p_barrio">
+        <label>Localidad</label><input id="p_localidad">
+        <label>Ciudad</label><input id="p_ciudad">
+        <label>Teléfono 1</label><input id="p_tel1">
+        <label>Teléfono 2</label><input id="p_tel2">
+        <label>Encargada</label><input id="p_encargada">
+        <div style="margin-top:8px"><button id="btnPointCreate" class="primary">Agregar Punto</button></div>
+      </div>
+
+      <div class="card">
+        <h3>Listado</h3>
+        <input id="searchFund" placeholder="Buscar fundaciones..." style="margin-bottom:10px">
+        <div id="fundList"></div>
+      </div>
+    </section>
+
+    <section id="items" class="card hidden">
+      <h2>Items</h2>
+      <div class="card">
+        <label>Nombre</label><input id="item_name">
+        <label>Descripción</label><input id="item_desc">
+        <label>Precio</label><input id="item_price" type="number">
+        <div style="margin-top:8px"><button id="btnCreateItem" class="primary">Agregar Item</button></div>
+      </div>
+
+      <div class="card">
+        <h3>Gestionar Embalajes</h3>
+        <input id="new_pack" placeholder="Nuevo embalaje">
+        <div style="margin-top:8px"><button id="btnAddPack" class="primary">Agregar</button></div>
+        <ul id="packList" class="small" style="padding-left:18px;margin-top:10px"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Listado de Items</h3>
+        <input id="searchItems" placeholder="Buscar..." style="margin-bottom:10px">
+        <table class="table" id="itemsTable"><thead><tr><th>Nombre</th><th>Descripción</th><th>Precio</th><th></th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="conductores" class="card hidden">
+      <h2>Conductores</h2>
+      <div class="card">
+        <label>Nombre</label><input id="drv_name">
+        <label>Documento</label><input id="drv_doc">
+        <label>Teléfono</label><input id="drv_tel">
+        <label>Empresa</label><input id="drv_cmp">
+        <div style="margin-top:8px"><button id="btnAddDriver" class="primary">Agregar Conductor</button></div>
+      </div>
+
+      <div class="card">
+        <h3>Agregar Placa</h3>
+        <label>Placa</label><input id="pl_plate">
+        <label>Tipo</label><input id="pl_type">
+        <div style="margin-top:8px"><button id="btnAddPlate" class="primary">Agregar</button></div>
+      </div>
+
+      <div class="card">
+        <h3>Conductores</h3>
+        <input id="searchDrivers" placeholder="Buscar..." style="margin-bottom:10px">
+        <ul id="driversList"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Placas</h3>
+        <input id="searchPlates" placeholder="Buscar..." style="margin-bottom:10px">
+        <ul id="platesList"></ul>
+      </div>
+    </section>
+
+    <section id="recibos" class="card hidden">
+      <h2>Pedidos</h2>
+      <div class="card">
+        <h3>Crear Pedido</h3>
+        <label>NIT Fundación</label><input id="pd_nit">
+        <div id="pd_fund_info" class="small" style="margin-top:6px"></div>
+        <label>Fundación</label><select id="pd_fund"></select>
+        <label>Punto de Envío</label><select id="pd_point"></select>
+        <label>Conductor</label><select id="pd_driver"></select>
+        <label>Placa</label><select id="pd_plate"></select>
+        <label>Peaje</label><input id="pd_peaje" type="number">
+        <label>Costo de Transporte</label><input id="pd_trans" type="number">
+
+        <h3 style="margin-top:16px">Agregar Items</h3>
+        <label>Item</label>
+        <select id="pd_item_sel" style="width:100%;margin-bottom:6px"></select>
+        <label>Embalaje (opcional)</label>
+        <select id="pd_pack_sel" style="width:100%;margin-bottom:6px"></select>
+        <label>Cantidad de Embalaje</label>
+        <input id="pd_pack_qty" type="number" placeholder="Cant. Embalaje" value="1">
+        <label>Kilos (obligatorio)</label>
+        <input id="pd_kilos" type="number" placeholder="Kilos (obligatorio)">
+        <div style="margin-top:8px"><button id="pd_add_item" class="primary">Agregar producto</button></div>
+        <ul id="pd_items_list" style="margin-top:10px"></ul>
+
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button id="btnAddPedido" class="primary">Guardar Pedido</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:10px">
+        <h3>Listado de Pedidos</h3>
+        <input id="searchPedidos" placeholder="Buscar..." style="margin-bottom:10px">
+        <label>Filtrar por conductor</label>
+        <select id="filterDriver" style="margin-bottom:10px"></select>
+        <ul id="pedidosList"></ul>
+      </div>
+
+    </section>
+
+    <section id="usuarios" class="card hidden">
+      <h2>Perfil</h2>
+      <div class="card">
+        <label>Usuario (no editable)</label><input id="usr_username" disabled>
+        <label>Nombre completo</label><input id="usr_fullname">
+        <label>Teléfono</label><input id="usr_phone">
+        <label>Correo</label><input id="usr_email">
+        <label>Contraseña</label><input id="usr_password" type="password">
+        <div style="margin-top:8px"><button id="btnUserPassSave" class="primary">Actualizar</button></div>
+      </div>
+    </section>
+
+    <section id="auditoria" class="card hidden">
+      <h2>Auditoría Avanzada</h2>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+        <input id="auditSearch" placeholder="Buscar en auditoría...">
+        <label>Usuario</label><select id="audit_user_filter"><option value="">Todos</option></select>
+        <button id="btnFilterAudit" class="primary">Filtrar</button>
+      </div>
+      <div id="auditDash" class="card"></div>
+      <ul id="auditList" class="small" style="padding-left:18px"></ul>
+    </section>
+
+    <section id="seguimiento" class="card hidden">
+      <h2>Seguimiento de Fundaciones</h2>
+      <div class="card">
+        <label>Fundación</label><select id="seg_fund"><option value="">Todas</option></select>
+        <label>Desde</label><input id="seg_from" type="date">
+        <label>Hasta</label><input id="seg_to" type="date">
+        <div style="margin-top:8px"><button id="btnFilterSeg" class="primary">Filtrar</button> <button id="btnExportSegCSV" class="primary">Exportar CSV</button></div>
+        <table class="table" id="segTable"><thead><tr><th>Fecha</th><th>Fundación</th><th>Barrio</th><th>Kilos</th><th>Conductor</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="roles" class="card hidden">
+      <h2>Gestión de Roles</h2>
+      <div class="card">
+        <label>Rol</label><select id="role_select"></select>
+        <div id="rolePerms" style="margin-top:12px"></div>
+        <div style="margin-top:8px"><button id="btnSaveRole" class="primary">Guardar permisos</button></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- App scripts -->
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
