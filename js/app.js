@@ -1,14 +1,76 @@
-// ------------------------------------------------------
-// 1) Conexión a Supabase
-// ------------------------------------------------------
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js";
 
-export const supabase = createClient(
+const supabase = createClient(
   "https://drvurgbsuiwnmwgikykg.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRydnVyZ2JzdWl3bm13Z2lreWtnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQyNjc2NzIsImV4cCI6MjA3OTg0MzY3Mn0.pMAsD8ogQWLy-GPXs5fAmFCeokThb3pU4q46pdzDeyw"
 );
 
-console.log("🔥 Supabase conectado");
+// ELEMENTOS UI
+const loginModal = document.getElementById("loginModal");
+const loginUser = document.getElementById("login_user");
+const loginPass = document.getElementById("login_pass");
+const btnLogin  = document.getElementById("btnLogin");
+const loginError = document.getElementById("loginError");
+
+// ===============================
+//   VERIFICAR SI HAY SESIÓN
+// ===============================
+supabase.auth.getSession().then(({ data }) => {
+  if (!data.session) {
+    loginModal.style.display = "flex";
+  } else {
+    loginModal.style.display = "none";
+    cargarInterfaz(); // función principal luego del login
+  }
+});
+
+// ===============================
+//   LOGIN POR USUARIO
+// ===============================
+btnLogin.addEventListener("click", async () => {
+  const usuario = loginUser.value.trim();
+  const pass = loginPass.value.trim();
+
+  if (!usuario || !pass) {
+    loginError.textContent = "Complete todos los campos.";
+    return;
+  }
+
+  // 1. Buscar usuario en tabla interna
+  const { data: userRow, error } = await supabase
+    .from("usuarios")
+    .select("email")
+    .eq("username", usuario)
+    .single();
+
+  if (error || !userRow) {
+    loginError.textContent = "Usuario no encontrado.";
+    return;
+  }
+
+  // 2. Autenticación real con Supabase Auth
+  const { error: loginErrorSupabase } =
+    await supabase.auth.signInWithPassword({
+      email: userRow.email,
+      password: pass
+    });
+
+  if (loginErrorSupabase) {
+    loginError.textContent = "Contraseña incorrecta.";
+    return;
+  }
+
+  loginModal.style.display = "none";
+  cargarInterfaz();
+});
+
+// ===============================
+//   FUNCIÓN PRINCIPAL POST LOGIN
+// ===============================
+function cargarInterfaz() {
+  console.log("Usuario autenticado, cargando ERP...");
+  // Aquí va TODO el código que ya tienes para mostrar la app
+}
 
 
 // ------------------------------------------------------
