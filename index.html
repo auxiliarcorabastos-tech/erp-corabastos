@@ -23,7 +23,13 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
 .modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:60}
 .modal .card{width:100%;max-width:420px}
 @media(max-width:900px){#sidebar{position:fixed;left:0;top:50px;bottom:0;transform:translateX(-100%);transition:transform .22s;z-index:40}#sidebar.open{transform:translateX(0)}main{padding:12px}}
+/* image render helper (off-screen) */
+#imgPedidoRender{position:fixed;left:-9999px;top:-9999px;visibility:hidden}
 </style>
+
+<!-- html2canvas -->
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<!-- xlsx (kept for Excel import) -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
@@ -37,6 +43,7 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
     <button id="btnLogout" class="primary hidden">Cerrar sesión</button>
   </div>
 </header>
+
 <div class="app">
   <aside id="sidebar">
     <button data-sec="dashboard">Dashboard</button>
@@ -52,8 +59,8 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
     <button data-sec="seguimiento">Seguimiento</button>
     <button data-sec="roles">Gestión Roles</button>
   </aside>
-  <main id="main">
 
+  <main id="main">
     <section id="dashboard" class="card">
       <h2>Bienvenido</h2>
       <p class="small">Versión estable. Inicie sesión para usar el sistema.</p>
@@ -90,7 +97,6 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
         <h3>Listado</h3>
         <input id="searchFund" placeholder="Buscar fundaciones..." style="margin-bottom:10px">
         <div id="fundList"></div>
-      
       </div>
     </section>
 
@@ -255,7 +261,6 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
       <h2>Roles</h2>
       <div class="card small">Gestión de roles disponible para administrador.</div>
     </section>
-
   </main>
 </div>
 
@@ -273,12 +278,16 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
   </div>
 </div>
 
+<!-- Off-screen container used to render the image -->
+<div id="imgPedidoRender"></div>
+
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   const $ = id => document.getElementById(id);
-  // state init
+
+  // state in localStorage
   let state = JSON.parse(localStorage.getItem('erp_state')||'null') || {};
-  state.users = Array.isArray(state.users)? state.users : [{username:'admin',pass:'3134630773',role:'admin',fullname:'Administrador'}];
+  state.users = Array.isArray(state.users)? state.users : [{username:'admin',pass:'admin',role:'admin',fullname:'Administrador'}];
   state.currentUser = state.currentUser || null;
   state.foundations = Array.isArray(state.foundations)? state.foundations : [];
   state.items = Array.isArray(state.items)? state.items : [];
@@ -291,114 +300,127 @@ document.addEventListener('DOMContentLoaded',function(){
 
   function registrarAccion(accion,detalle){ const rec={fecha:new Date().toISOString(),usuario: state.currentUser?state.currentUser.username:'-',accion,detalle}; state.audit.unshift(rec); save(); renderAudit(); }
 
-  // UI helpers
-  function showSection(id){ document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden')); const el = $(id); if(el) el.classList.remove('hidden'); document.querySelectorAll('#sidebar button').forEach(b=>b.classList.remove('active')); const btn=document.querySelector('#sidebar button[data-sec="'+id+'"]'); if(btn) btn.classList.add('active'); }
+  // NAV helpers
+  function showSection(id){
+    document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
+    const el = document.getElementById(id);
+    if(el) el.classList.remove('hidden');
+    document.querySelectorAll('#sidebar button').forEach(b=>b.classList.remove('active'));
+    const btn=document.querySelector('#sidebar button[data-sec="'+id+'"]');
+    if(btn) btn.classList.add('active');
+  }
   document.querySelectorAll('#sidebar button').forEach(b=> b.addEventListener('click', ()=> showSection(b.dataset.sec) ));
   $('btnMenu').addEventListener('click', ()=> document.getElementById('sidebar').classList.toggle('open'));
 
-  // Login modal behaviors
+  // login modal
   function openLogin(){ $('loginModal').classList.remove('hidden'); }
   function closeLogin(){ $('loginModal').classList.add('hidden'); }
 
-  // toggle password
+  // toggle password visibility
   $('togglePass').addEventListener('click', function(ev){ ev.preventDefault(); const p=$('login_pass'); p.type = p.type === 'password' ? 'text' : 'password'; this.textContent = p.type==='password'? 'mostrar':'ocultar'; });
 
-  // require login at start
-  function setCurrentUser(user){ state.currentUser = user; save(); $('headerUser').innerText = user.username + ' ('+user.role+')'; $('btnLogout').classList.remove('hidden'); if(user.role !== 'admin') { $('btnAdminUsers').style.display = 'none'; } else { $('btnAdminUsers').style.display = 'block'; } closeLogin(); renderAll(); showSection('dashboard'); }
+  function setCurrentUser(user){
+    state.currentUser = user; save();
+    $('headerUser').innerText = user.username + ' ('+user.role+')';
+    $('btnLogout').classList.remove('hidden');
+    if(user.role !== 'admin') { $('btnAdminUsers').style.display = 'none'; } else { $('btnAdminUsers').style.display = 'block'; }
+    closeLogin();
+    renderAll();
+    showSection('dashboard');
+  }
 
   // login handler
-  $('btnLogin').addEventListener('click', function(){ const u = $('login_user').value.trim(); const p = $('login_pass').value.trim(); if(!u || !p){ alert('Usuario y clave requeridos'); return; } $('loginStatus').innerText = 'Iniciando...'; setTimeout(()=>{ const found = state.users.find(x=>x.username===u && x.pass===p); if(!found){ alert('Usuario o clave incorrectos'); $('loginStatus').innerText=''; return; } setCurrentUser(found); registrarAccion('login',{user:u}); $('login_user').value=''; $('login_pass').value=''; $('loginStatus').innerText=''; },600); });
+  $('btnLogin').addEventListener('click', function(){
+    const u = $('login_user').value.trim(); const p = $('login_pass').value.trim();
+    if(!u || !p){ alert('Usuario y clave requeridos'); return; }
+    $('loginStatus').innerText = 'Iniciando...';
+    setTimeout(()=>{
+      const found = state.users.find(x=>x.username===u && x.pass===p);
+      if(!found){ alert('Usuario o clave incorrectos'); $('loginStatus').innerText=''; return; }
+      setCurrentUser(found); registrarAccion('login',{user:u}); $('login_user').value=''; $('login_pass').value=''; $('loginStatus').innerText='';
+    },400);
+  });
 
-  // logout
   $('btnLogout').addEventListener('click', function(){ if(confirm('Cerrar sesión?')){ state.currentUser = null; save(); $('headerUser').innerText = 'Invitado'; $('btnLogout').classList.add('hidden'); openLogin(); } });
 
-  // If no user, force login
   if(!state.currentUser){ openLogin(); } else { setCurrentUser(state.currentUser); }
 
   // Fillers and renderers
-  function fillFundSelects(){ const sel = $('selFund'); if(sel){ sel.innerHTML=''; state.foundations.forEach((f,i)=> sel.appendChild(new Option(f.name+' ('+f.nit+')', i))); } const pf = $('pd_fund'); if(pf){ pf.innerHTML=''; state.foundations.forEach((f,i)=> pf.appendChild(new Option(f.name, i))); fillPedidoPoints(); } }
-
+  function fillFundSelects(){
+    const sel = $('selFund'); if(sel){ sel.innerHTML=''; state.foundations.forEach((f,i)=> sel.appendChild(new Option(f.name+' ('+f.nit+')', i))); }
+    const pf = $('pd_fund'); if(pf){ pf.innerHTML=''; state.foundations.forEach((f,i)=> pf.appendChild(new Option(f.name, i))); fillPedidoPoints(); }
+  }
   function fillPedidoPoints(){ const sel=$('pd_point'); if(!sel) return; sel.innerHTML=''; const fi=Number($('pd_fund').value||0); const f= state.foundations[fi]; if(f && Array.isArray(f.points)){ f.points.forEach((p,i)=> sel.appendChild(new Option(p.barrio+' ('+p.localidad+' - '+p.ciudad+')', i))); } }
-  function fillItemSelect(){ const sel=$('pd_item_sel'); if(!sel) return; sel.innerHTML=''; state.items.forEach((it,i)=> sel.appendChild(new Option(it.name+' - $'+it.price, i))); }
+  function fillItemSelect(){ const sel=$('pd_item_sel'); if(!sel) return; sel.innerHTML=''; state.items.forEach((it,i)=> sel.appendChild(new Option(it.name+' - $'+(it.price||0), i))); }
   function fillPackSelect(){ const sel=$('pd_pack_sel'); if(!sel) return; sel.innerHTML=''; sel.appendChild(new Option('','')); state.packs.forEach(p=> sel.appendChild(new Option(p,p))); }
   function fillDriverPlate(){ const sd=$('pd_driver'); const sp=$('pd_plate'); if(sd){ sd.innerHTML=''; state.drivers.forEach((d,i)=> sd.appendChild(new Option(d.name,i))); } if(sp){ sp.innerHTML=''; state.plates.forEach((p,i)=> sp.appendChild(new Option(p.plate,i))); } }
 
-  function renderFund(){ const box=$('fundList'); if(!box) return; box.innerHTML=''; state.foundations.forEach((f,idx)=>{ const d=document.createElement('div'); d.className='card'; d.style.marginBottom='8px'; let html = '<strong>'+f.name+'</strong><div class="small">NIT: '+f.nit+'</div>'; if(Array.isArray(f.points) && f.points.length){ html += '<div style="margin-top:8px">'; f.points.forEach((p)=>{ html += '<div class="small">'+p.barrio+' — '+p.localidad+' — '+p.ciudad+' — '+(p.encargada||'')+'</div>'; }); html += '</div>'; } else { html += '<div class="small">Sin puntos</div>'; } d.innerHTML = html; box.appendChild(d); }); }
+  function renderFund(){
+    const box=$('fundList'); if(!box) return; box.innerHTML='';
+    state.foundations.forEach((f,idx)=>{ const d=document.createElement('div'); d.className='card'; d.style.marginBottom='8px'; let html = '<strong>'+f.name+'</strong><div class="small">NIT: '+f.nit+'</div>'; if(Array.isArray(f.points) && f.points.length){ html += '<div style="margin-top:8px">'; f.points.forEach((p)=>{ html += '<div class="small">'+p.barrio+' — '+p.localidad+' — '+p.ciudad+' — '+(p.encargada||'')+' — '+(p.tel1||'')+'</div>'; }); html += '</div>'; } else { html += '<div class="small">Sin puntos</div>'; } d.innerHTML = html; box.appendChild(d); });
+  }
 
-  function renderItems(){ const tbody = $('itemsTable').querySelector('tbody'); tbody.innerHTML=''; state.items.forEach((it,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = '<td>'+it.name+'</td><td>'+(it.desc||'')+'</td><td>$'+(it.price||0)+'</td><td><button data-i="'+i+'" class="delItem">Eliminar</button></td>'; tbody.appendChild(tr); }); document.querySelectorAll('.delItem').forEach(btn=> btn.addEventListener('click', function(){ if(!state.currentUser || state.currentUser.role!=='admin'){ return alert('Solo admin puede eliminar'); } const idx=Number(this.dataset.i); state.items.splice(idx,1); save(); renderItems(); registrarAccion('eliminar_item',{index:idx}); })); }
+  function renderItems(){
+    const tbody = $('itemsTable').querySelector('tbody'); tbody.innerHTML='';
+    state.items.forEach((it,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = '<td>'+ (it.ref || '') +'</td><td>'+ (it.name || '') +'</td><td>'+(it.desc||'')+'</td><td>$'+(it.price||0)+'</td><td><button data-i="'+i+'" class="delItem">Eliminar</button></td>'; tbody.appendChild(tr); });
+    document.querySelectorAll('.delItem').forEach(btn=> btn.addEventListener('click', function(){ if(!state.currentUser || state.currentUser.role!=='admin'){ return alert('Solo admin puede eliminar'); } const idx=Number(this.dataset.i); state.items.splice(idx,1); save(); renderItems(); registrarAccion('eliminar_item',{index:idx}); }));
+  }
 
   function renderPacks(){ const ul=$('packList'); if(!ul) return; ul.innerHTML=''; state.packs.forEach((p,i)=>{ const li=document.createElement('li'); li.textContent = p + ' '; const del=document.createElement('button'); del.textContent='Eliminar'; del.style.marginLeft='8px'; del.addEventListener('click', ()=>{ if(!state.currentUser || state.currentUser.role!=='admin') return alert('Solo admin'); state.packs.splice(i,1); save(); renderPacks(); }); li.appendChild(del); ul.appendChild(li); }); }
 
   function renderDrivers(){ const ul=$('driversList'); if(!ul) return; ul.innerHTML=''; state.drivers.forEach((d,i)=>{ const li=document.createElement('li'); li.textContent = d.name + ' — ' + (d.document||''); ul.appendChild(li); }); }
   function renderPlates(){ const ul=$('platesList'); if(!ul) return; ul.innerHTML=''; state.plates.forEach((p,i)=>{ const li=document.createElement('li'); li.textContent = p.plate + ' ('+(p.type||'')+')'; ul.appendChild(li); }); }
 
-  function renderPedidos(){ const ul=$('pedidosList'); if(!ul) return; ul.innerHTML=''; state.pedidos.forEach((p,idx)=>{ const li=document.createElement('li'); li.style.marginBottom='8px'; const created = new Date(p.createdAt).toLocaleString(); li.innerHTML = '<strong>'+p.id+'</strong> — '+p.foundation+' — $'+(p.total||0)+'<div class="small">'+created+'</div><div class="small">Llegada: '+(p.horaLlegada||'—')+' | Salida: '+(p.horaSalida||'—')+' | Conductor: '+(p.driver?.name||'—')+'</div>'; const btnH=document.createElement('button'); btnH.textContent='Registrar Horas'; btnH.className='primary'; btnH.style.marginTop='6px'; btnH.addEventListener('click', ()=>{ const hL=prompt('Hora de llegada (HH:MM)', p.horaLlegada||''); if(!hL) return; const hS=prompt('Hora de salida (HH:MM)', p.horaSalida||''); if(!hS) return; p.horaLlegada=hL; p.horaSalida=hS; save(); renderPedidos(); registrarAccion('registrar_horas',{id:p.id,hL,hS}); }); const btnC=document.createElement('button'); btnC.textContent='Copiar'; btnC.className='primary'; btnC.style.marginLeft='8px'; btnC.addEventListener('click', ()=>{ const nit = prompt('NIT de la nueva fundación'); if(!nit) return; const f = state.foundations.find(x=>x.nit===nit); if(!f) return alert('NIT no registrado'); const newPedido = JSON.parse(JSON.stringify(p)); newPedido.id = 'PED-'+Date.now(); newPedido.foundation = f.name; newPedido.foundationNIT = f.nit; state.pedidos.unshift(newPedido); save(); renderPedidos(); registrarAccion('copiar_pedido',{base:p.id,new:newPedido.id}); alert('Pedido copiado: '+newPedido.id); }); li.appendChild(btnH); li.appendChild(btnC); ul.appendChild(li); }); }
+  function renderPedidos(){
+    const ul=$('pedidosList'); if(!ul) return; ul.innerHTML='';
+    state.pedidos.forEach((p,idx)=>{ 
+      const li=document.createElement('li'); li.style.marginBottom='8px'; li.style.listStyle='none';
+      const created = new Date(p.createdAt).toLocaleString();
+      let html = '<div style="padding:10px;border-radius:8px;background:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.04)">';
+      html += '<div><strong>'+p.id+'</strong> — '+(p.foundation||'')+' (NIT: '+(p.foundationNIT||'')+')</div>';
+      html += '<div class="small">'+created+'</div>';
+      html += '<div class="small">Punto: '+(p.point?.barrio||'')+' — '+(p.point?.localidad||'')+' — '+(p.point?.ciudad||'')+'</div>';
+      html += '<div class="small">Encargada: '+(p.point?.encargada||'')+' | Tels: '+(p.point?.tel1||'')+' '+(p.point?.tel2||'')+'</div>';
+      html += '<div class="small">Conductor: '+(p.driver?.name||'—')+' | Placa: '+(p.driver?.plate||p.driver?.plate||'—')+'</div>';
+      html += '<div class="small">Peaje: $'+(p.peaje||0)+' — Transporte: $'+(p.trans||0)+'</div>';
+      html += '<div style="margin-top:8px"><strong>Items:</strong></div>';
+      html += '<ul class="small">';
+      (p.items||[]).forEach(it=> html += '<li>'+ (it.name || it.ref || '') +' — Embalaje: '+(it.pack||'')+' — Cant: '+(it.qty||1)+' — Kilos: '+(it.kgs||it.kgs===0?it.kgs:'—') +' — $'+(it.price||0)+'</li>');
+      html += '</ul>';
+      html += '<div style="margin-top:8px">';
+      html += '<button class="primary btnHoras" data-i="'+idx+'">Registrar Horas</button> ';
+      html += '<button class="primary btnCopiar" data-i="'+idx+'">Copiar</button> ';
+      html += '<button class="primary btnVer" data-i="'+idx+'">Ver</button> ';
+      html += '<button class="primary btnImgPedido" data-i="'+idx+'">Imagen</button>';
+      html += '</div></div>';
+      li.innerHTML = html;
+      ul.appendChild(li);
+    });
+
+    // attach events after DOM nodes created
+    document.querySelectorAll('.btnHoras').forEach(btn=> btn.addEventListener('click', function(){ const i=Number(this.dataset.i); const p=state.pedidos[i]; const hL=prompt('Hora de llegada (HH:MM)', p.horaLlegada||''); if(!hL) return; const hS=prompt('Hora de salida (HH:MM)', p.horaSalida||''); if(!hS) return; p.horaLlegada=hL; p.horaSalida=hS; save(); renderPedidos(); registrarAccion('registrar_horas',{id:p.id,hL,hS}); }));
+    document.querySelectorAll('.btnCopiar').forEach(btn=> btn.addEventListener('click', function(){ const i=Number(this.dataset.i); const p=state.pedidos[i]; const nit = prompt('NIT de la nueva fundación'); if(!nit) return; const f = state.foundations.find(x=>x.nit===nit); if(!f) return alert('NIT no registrado'); const newPedido = JSON.parse(JSON.stringify(p)); newPedido.id = 'PED-'+Date.now(); newPedido.foundation = f.name; newPedido.foundationNIT = f.nit; state.pedidos.unshift(newPedido); save(); renderPedidos(); registrarAccion('copiar_pedido',{base:p.id,new:newPedido.id}); alert('Pedido copiado: '+newPedido.id); }));
+    document.querySelectorAll('.btnVer').forEach(btn=> btn.addEventListener('click', function(){ const i=Number(this.dataset.i); verPedido(i); }));
+    document.querySelectorAll('.btnImgPedido').forEach(btn=> btn.addEventListener('click', function(){ const i=Number(this.dataset.i); exportarPedidoImagen(i); }));
+  }
 
   function renderAudit(){ const box=$('auditList'); if(!box) return; box.innerHTML=''; const uf=$('auditUserFilter').value.trim().toLowerCase(); const df=$('auditDateFilter').value; state.audit.forEach(a=>{ const dstr=new Date(a.fecha).toISOString().slice(0,10); if(uf && !a.usuario.toLowerCase().includes(uf)) return; if(df && dstr!==df) return; const d=document.createElement('div'); d.style.marginBottom='8px'; d.innerHTML='<b>['+new Date(a.fecha).toLocaleString()+'] '+a.usuario+'</b> — '+a.accion+' <div class="small">'+JSON.stringify(a.detalle)+'</div>'; box.appendChild(d); }); }
-$('auditUserFilter').addEventListener('input',renderAudit);
-$('auditDateFilter').addEventListener('change',renderAudit);
 
-  // Fillers
-  fillFundSelects(); fillItemSelect(); fillPackSelect(); fillDriverPlate(); renderFund(); renderItems(); renderPacks(); renderDrivers(); renderPlates(); renderPedidos(); renderAudit();
+  $('auditUserFilter').addEventListener('input',renderAudit);
+  $('auditDateFilter').addEventListener('change',renderAudit);
 
-  // Import Fundaciones Excel
-  $('btnImportFund').addEventListener('click', ()=>{
-    const file = $('excel_fundaciones').files[0];
-    if(!file) return alert('Seleccione un archivo Excel.');
-    const reader = new FileReader();
-    reader.onload = e => {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data,{type:'array'});
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet,{header:1});
-      rows.forEach((r,i)=>{
-        if(i===0) return;
-        const nit = String(r[0]||'').trim();
-        const name = String(r[1]||'').trim();
-        if(!nit||!name) return;
-        if(!state.foundations.some(f=>f.nit===nit)){
-          state.foundations.push({nit,name,points:[]});
-        }
-      });
-      save(); fillFundSelects(); renderFund(); registrarAccion('importar_fund_excel',{cant:rows.length});
-      alert('Fundaciones importadas.');
-    };
-    reader.readAsArrayBuffer(file);
-  });
+  // IMPORT Excel fundaciones
+  $('btnImportFund').addEventListener('click', ()=>{ const file = $('excel_fundaciones').files[0]; if(!file) return alert('Seleccione un archivo Excel.'); const reader = new FileReader(); reader.onload = e => { const data = new Uint8Array(e.target.result); const wb = XLSX.read(data,{type:'array'}); const sheet = wb.Sheets[wb.SheetNames[0]]; const rows = XLSX.utils.sheet_to_json(sheet,{header:1}); rows.forEach((r,i)=>{ if(i===0) return; const nit = String(r[0]||'').trim(); const name = String(r[1]||'').trim(); if(!nit||!name) return; if(!state.foundations.some(f=>f.nit===nit)){ state.foundations.push({nit,name,points:[]}); } }); save(); fillFundSelects(); renderFund(); registrarAccion('importar_fund_excel',{cant:rows.length}); alert('Fundaciones importadas.'); }; reader.readAsArrayBuffer(file); });
 
-  // Import Items Excel
-  $('btnImportItems').addEventListener('click', ()=>{
-    const file = $('excel_items').files[0];
-    if(!file) return alert('Seleccione un archivo Excel.');
-    const reader = new FileReader();
-    reader.onload = e => {
-      const data = new Uint8Array(e.target.result);
-      const wb = XLSX.read(data,{type:'array'});
-      const sheet = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet,{header:1});
-      rows.forEach((r,i)=>{
-        if(i===0) return;
-        const ref = String(r[0]||'').trim();
-        const name = String(r[1]||'').trim();
-        const price = Number(r[2]||0);
-        const desc = String(r[3]||'').trim();
-        if(!ref||!name) return;
-        if(!state.items.some(it=>it.ref===ref)){
-          state.items.push({ref,name,desc,price});
-        }
-      });
-      save(); renderItems(); fillItemSelect(); registrarAccion('importar_items_excel',{cant:rows.length});
-      alert('Items importados.');
-    };
-    reader.readAsArrayBuffer(file);
-  });
+  // IMPORT Excel items
+  $('btnImportItems').addEventListener('click', ()=>{ const file = $('excel_items').files[0]; if(!file) return alert('Seleccione un archivo Excel.'); const reader = new FileReader(); reader.onload = e => { const data = new Uint8Array(e.target.result); const wb = XLSX.read(data,{type:'array'}); const sheet = wb.Sheets[wb.SheetNames[0]]; const rows = XLSX.utils.sheet_to_json(sheet,{header:1}); rows.forEach((r,i)=>{ if(i===0) return; const ref = String(r[0]||'').trim(); const name = String(r[1]||'').trim(); const price = Number(r[2]||0); const desc = String(r[3]||'').trim(); if(!ref||!name) return; if(!state.items.some(it=>it.ref===ref)){ state.items.push({ref,name,desc,price}); } }); save(); renderItems(); fillItemSelect(); registrarAccion('importar_items_excel',{cant:rows.length}); alert('Items importados.'); }; reader.readAsArrayBuffer(file); });
 
-  // Handlers
+  // HANDLERS: create fund, points, items, packs, drivers, plates
   $('btnFundCreate').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const nit=$('f_nit').value.trim(); const name=$('f_name').value.trim(); if(!nit||!name) return alert('Complete NIT y Nombre'); state.foundations.push({nit,name,points:[]}); save(); fillFundSelects(); renderFund(); registrarAccion('crear_fundacion',{nit,name}); $('f_nit').value=''; $('f_name').value=''; });
 
   $('btnPointCreate').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const fi=Number($('selFund').value); const f = state.foundations[fi]; if(!f) return alert('Seleccione fundación'); const p={barrio:$('p_barrio').value.trim(),localidad:$('p_localidad').value.trim(),ciudad:$('p_ciudad').value.trim(),tel1:$('p_tel1').value.trim(),tel2:$('p_tel2').value.trim(),encargada:$('p_encargada').value.trim()}; f.points = f.points || []; f.points.push(p); save(); renderFund(); fillFundSelects(); registrarAccion('crear_punto',{fund:f.name,barrio:p.barrio}); $('p_barrio').value=''; });
 
-  $('btnCreateItem').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const name=$('item_name').value.trim(); if(!name) return alert('Nombre requerido'); const desc=$('item_desc').value.trim(); const price=Number($('item_price').value)||0; state.items.push({name,desc,price}); save(); renderItems(); fillItemSelect(); registrarAccion('crear_item',{name}); $('item_name').value=''; $('item_desc').value=''; $('item_price').value=''; });
+  $('btnCreateItem').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const ref=$('item_ref').value.trim(); const name=$('item_name').value.trim(); if(!ref||!name) return alert('Nombre y referencia requeridos'); const desc=$('item_desc').value.trim(); const price=Number($('item_price').value)||0; state.items.push({ref,name,desc,price}); save(); renderItems(); fillItemSelect(); registrarAccion('crear_item',{ref,name}); $('item_ref').value=''; $('item_name').value=''; $('item_desc').value=''; $('item_price').value=''; });
 
   $('btnAddPack').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const v=$('new_pack').value.trim(); if(!v) return alert('Ingrese nombre'); state.packs.push(v); save(); renderPacks(); $('new_pack').value=''; registrarAccion('crear_embalaje',{pack:v}); });
 
@@ -410,7 +432,7 @@ $('auditDateFilter').addEventListener('change',renderAudit);
   let currentPedidoItems = [];
   function refreshPdItems(){ const ul=$('pd_items_list'); if(!ul) return; ul.innerHTML=''; currentPedidoItems.forEach((it,idx)=>{ const li=document.createElement('li'); li.style.marginBottom='6px'; li.textContent = it.name + ' x' + (it.qty||1) + ' — ' + (it.kgs? it.kgs+'kg':'' ) + ' — $'+(it.price||0); const del=document.createElement('button'); del.textContent='Eliminar'; del.style.marginLeft='8px'; del.addEventListener('click', ()=>{ currentPedidoItems.splice(idx,1); refreshPdItems(); }); li.appendChild(del); ul.appendChild(li); }); }
 
-  $('pd_add_item').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const idx = Number($('pd_item_sel').value); if(isNaN(idx) || !state.items[idx]) return alert('Seleccione item'); const pack = $('pd_pack_sel').value || ''; const packQty = Number($('pd_pack_qty').value)||0; const kgs = Number($('pd_kilos').value); if(!kgs) return alert('Kilos obligatorios'); const it = state.items[idx]; const qty = packQty || 1; currentPedidoItems.push({name:it.name,price:it.price,qty,pack,kgs}); refreshPdItems(); });
+  $('pd_add_item').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const idx = Number($('pd_item_sel').value); if(isNaN(idx) || !state.items[idx]) return alert('Seleccione item'); const pack = $('pd_pack_sel').value || ''; const packQty = Number($('pd_pack_qty').value)||1; const kgs = Number($('pd_kilos').value); if(!kgs){ return alert('Kilos obligatorios'); } const it = state.items[idx]; const qty = packQty || 1; currentPedidoItems.push({ref:it.ref,name:it.name,price:it.price||0,qty,pack,kgs}); refreshPdItems(); });
 
   $('pd_fund').addEventListener('change', ()=> fillPedidoPoints());
 
@@ -423,10 +445,132 @@ $('auditDateFilter').addEventListener('change',renderAudit);
 
   $('adm_add_user').addEventListener('click', ()=>{ if(!state.currentUser || state.currentUser.role!=='admin') return alert('Solo admin'); const user=$('adm_new_user').value.trim(); const pass=$('adm_new_pass').value.trim(); const role=$('adm_new_role').value; if(!user||!pass) return alert('Complete'); if(state.users.some(x=>x.username===user)) return alert('Usuario existe'); state.users.push({username:user,pass,role,fullname:'',phone:'',email:''}); save(); renderAdminUsers(); registrarAccion('crear_usuario',{username:user,role}); alert('Usuario creado'); });
 
-  // Render everything helper
   function renderAll(){ fillFundSelects(); fillItemSelect(); fillPackSelect(); fillDriverPlate(); renderFund(); renderItems(); renderPacks(); renderDrivers(); renderPlates(); renderPedidos(); renderAudit(); renderAdminUsers(); }
 
-  // initial render (if logged)
+  // VER pedido (modal-simple alert)
+  function verPedido(i){
+    const p = state.pedidos[i];
+    if(!p) return;
+    let s = `Pedido: ${p.id}\nFundación: ${p.foundation} (NIT: ${p.foundationNIT})\nPunto: ${p.point?.barrio||''} - ${p.point?.localidad||''}\nConductor: ${p.driver?.name||'--'}\nPlaca: ${p.driver?.plate||'--'}\nPeaje: $${p.peaje}\nTransporte: $${p.trans}\n\nItems:\n`;
+    (p.items||[]).forEach(it=> s += `- ${it.name} | Emb: ${it.pack||''} | Cant: ${it.qty} | Kgs: ${it.kgs} | $${it.price}\n`);
+    alert(s);
+  }
+
+  // EXPORTAR imagen (historial) — main function requested
+  function exportarPedidoImagen(index){
+    const p = state.pedidos[index];
+    if(!p) return alert('Pedido no encontrado');
+    // Build a wide horizontal render container
+    const container = document.createElement('div');
+    container.style.width = '1400px';
+    container.style.padding = '32px';
+    container.style.fontFamily = 'Arial, Helvetica, sans-serif';
+    container.style.background = '#fff';
+    container.style.color = '#000';
+    container.style.boxSizing = 'border-box';
+    // header
+    const totalKilos = (p.items||[]).reduce((s,it)=> s + (Number(it.kgs)||0), 0);
+    const subtotal = (p.items||[]).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.qty)||1), 0);
+    const total = subtotal + (Number(p.peaje)||0) + (Number(p.trans)||0);
+    const headerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+        <div>
+          <div style="font-size:28px;font-weight:700">PEDIDO</div>
+          <div style="margin-top:6px"><b>ID:</b> ${p.id}</div>
+          <div><b>Fecha:</b> ${new Date(p.createdAt).toLocaleString()}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:20px;font-weight:700">${p.foundation||''}</div>
+          <div><b>NIT:</b> ${p.foundationNIT||''}</div>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid #ddd;margin:12px 0">
+      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <div><b>Punto de envío</b></div>
+          <div>${p.point?.barrio||''} — ${p.point?.localidad||''} — ${p.point?.ciudad||''}</div>
+          <div class="small">Encargada: ${p.point?.encargada||''}</div>
+          <div class="small">Tels: ${p.point?.tel1||''} ${p.point?.tel2||''}</div>
+        </div>
+        <div style="text-align:right">
+          <div><b>Conductor:</b> ${p.driver?.name||''}</div>
+          <div><b>Placa:</b> ${p.driver?.plate||''}</div>
+          <div><b>Peaje:</b> $${p.peaje||0}</div>
+          <div><b>Transporte:</b> $${p.trans||0}</div>
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid #ddd;margin:12px 0">
+      <div style="margin-top:10px">
+        <table style="width:100%;border-collapse:collapse;font-size:16px">
+          <thead>
+            <tr>
+              <th style="border:1px solid #333;padding:10px;text-align:left">Item</th>
+              <th style="border:1px solid #333;padding:10px;text-align:left">Embalaje</th>
+              <th style="border:1px solid #333;padding:10px;text-align:right">Cantidad</th>
+              <th style="border:1px solid #333;padding:10px;text-align:right">Kilos</th>
+              <th style="border:1px solid #333;padding:10px;text-align:right">Precio</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(p.items||[]).map(it=>`
+              <tr>
+                <td style="border:1px solid #333;padding:10px">${escapeHtml(it.name||it.ref||'')}</td>
+                <td style="border:1px solid #333;padding:10px">${escapeHtml(it.pack||'')}</td>
+                <td style="border:1px solid #333;padding:10px;text-align:right">${it.qty||1}</td>
+                <td style="border:1px solid #333;padding:10px;text-align:right">${it.kgs||0}</td>
+                <td style="border:1px solid #333;padding:10px;text-align:right">$${(it.price||0).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:12px;font-size:18px">
+        <div style="text-align:right">
+          <div><b>Subtotal:</b> $${subtotal.toLocaleString()}</div>
+          <div><b>Peaje:</b> $${(p.peaje||0).toLocaleString()}</div>
+          <div><b>Transporte:</b> $${(p.trans||0).toLocaleString()}</div>
+          <div style="font-size:20px;margin-top:6px"><b>Total:</b> $${total.toLocaleString()}</div>
+          <div style="margin-top:6px"><b>Total Kilos:</b> ${totalKilos}</div>
+        </div>
+      </div>
+    `;
+    container.innerHTML = headerHTML;
+    // append to hidden render area
+    const renderArea = $('imgPedidoRender');
+    renderArea.innerHTML = '';
+    renderArea.appendChild(container);
+    // make visible for canvas, but kept off-screen (html2canvas works)
+    container.style.visibility = 'visible';
+    // render with html2canvas (scale for better resolution)
+    html2canvas(container, { scale: 2, useCORS:true, backgroundColor: '#ffffff' }).then(canvas=>{
+      // download
+      canvas.toBlob(function(blob){
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `pedido_${p.id}.png`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        // cleanup
+        renderArea.innerHTML = '';
+      }, 'image/png');
+    }).catch(err=>{
+      console.error(err);
+      alert('Error generando imagen: ' + (err.message||err));
+      renderArea.innerHTML = '';
+    });
+  }
+
+  // escape helper
+  function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+  // initial fill & render
+  fillFundSelects(); fillItemSelect(); fillPackSelect(); fillDriverPlate();
+  renderFund(); renderItems(); renderPacks(); renderDrivers(); renderPlates(); renderPedidos(); renderAudit(); renderAdminUsers();
+
+  // if logged -> show dashboard
   if(state.currentUser){ setCurrentUser(state.currentUser); } else { openLogin(); }
 
 });
