@@ -1,17 +1,12 @@
 import { state, saveState } from './state.js';
 
-/* -----------------------------
-   SIDEBAR TOGGLE SEGURO
------------------------------ */
 export function setupSidebarToggle(){
   const btn = document.getElementById('btnMenu');
   const sidebar = document.getElementById('sidebar');
-
-  // 🔥 FIX: tu contenedor principal no es "main", es "#content"
-  const main = document.getElementById('content') || document.querySelector('main');
+  const main = document.getElementById('main');   // ✔ FIX AQUÍ
 
   if(!btn || !sidebar || !main){
-    console.warn('Sidebar toggle: faltan elementos');
+    console.warn('Sidebar toggle: faltan elementos', btn, sidebar, main);
     return;
   }
 
@@ -19,21 +14,16 @@ export function setupSidebarToggle(){
     const isMobile = window.innerWidth <= 900;
 
     if(isMobile){
-      // 🔥 móvil: aparece flotante SIN overlay
       sidebar.classList.toggle('open');
     } else {
-      // 🔥 escritorio: cambia width, NO bloquea clics
       const hidden = sidebar.classList.toggle('sidebar-hidden');
       main.classList.toggle('expanded', hidden);
-
-      // persistencia
       try{
         localStorage.setItem('erp_sidebar_hidden', hidden ? '1' : '0');
       }catch(e){}
     }
   });
 
-  // Cargar estado guardado SOLO desktop
   try{
     const saved = localStorage.getItem('erp_sidebar_hidden') === '1';
     if(window.innerWidth > 900 && saved){
@@ -44,12 +34,12 @@ export function setupSidebarToggle(){
 }
 
 /* ======================================================
-      🔥 EXCEL: IMPORTAR PLACAS
+   IMPORTAR PLACAS DESDE EXCEL
 ====================================================== */
 export function importPlatesFromExcelFile(file){
   if(!file) return alert('Seleccione un archivo');
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.onload = (e)=>{
     try{
       const data = new Uint8Array(e.target.result);
       const wb = XLSX.read(data, {type:'array'});
@@ -60,17 +50,17 @@ export function importPlatesFromExcelFile(file){
       rows.forEach((r,i)=>{
         if(i===0) return;
         const plate = String(r[0]||'').trim();
-        const tipo  = String(r[1]||'').trim();
+        const type  = String(r[1]||'').trim();
         if(!plate) return;
 
         if(!state.plates.some(p=>p.plate===plate)){
-          state.plates.push({plate, type: tipo});
+          state.plates.push({plate, type});
           added++;
         }
       });
 
       saveState();
-      alert('Placas importadas: '+added);
+      alert('Placas importadas: ' + added);
       renderPlates();
 
     }catch(err){
@@ -81,9 +71,6 @@ export function importPlatesFromExcelFile(file){
   reader.readAsArrayBuffer(file);
 }
 
-/* ======================================================
-      RENDERS LISTAS
-====================================================== */
 export function renderDrivers(){
   const ul = document.getElementById('driversList');
   if(!ul) return;
@@ -100,14 +87,14 @@ export function renderPlates(){
   if(!ul) return;
   ul.innerHTML = '';
   state.plates.forEach(p=>{
-    const li = document.createElement('li');
+    const li=document.createElement('li');
     li.textContent = `${p.plate} (${p.type||''})`;
     ul.appendChild(li);
   });
 }
 
 /* ======================================================
-   AUTO-IMPORT DESDE assets/BASE DE DATOS.xlsx
+   AUTO IMPORT "assets/BASE DE DATOS.xlsx"
 ====================================================== */
 export async function initFromExcelAssets(){
   try{
@@ -117,8 +104,8 @@ export async function initFromExcelAssets(){
     const ab = await res.arrayBuffer();
     const wb = XLSX.read(new Uint8Array(ab), {type:'array'});
 
-    // 🔥 hoja 0 -> fundaciones
-    if(wb.SheetNames.length>0){
+    // FUNDACIONES
+    if(wb.SheetNames.length > 0){
       const s0 = wb.Sheets[wb.SheetNames[0]];
       const rows0 = XLSX.utils.sheet_to_json(s0,{header:1});
       rows0.forEach((r,i)=>{
@@ -126,15 +113,14 @@ export async function initFromExcelAssets(){
         const nit  = String(r[0]||'').trim();
         const name = String(r[1]||'').trim();
         if(!nit || !name) return;
-
         if(!state.foundations.some(f=>f.nit===nit)){
-          state.foundations.push({nit, name, points:[]});
+          state.foundations.push({nit,name,points:[]});
         }
       });
     }
 
-    // 🔥 hoja 1 -> items
-    if(wb.SheetNames.length>1){
+    // ITEMS
+    if(wb.SheetNames.length > 1){
       const s1 = wb.Sheets[wb.SheetNames[1]];
       const rows1 = XLSX.utils.sheet_to_json(s1,{header:1});
       rows1.forEach((r,i)=>{
@@ -144,25 +130,23 @@ export async function initFromExcelAssets(){
         const price = Number(r[2]||0);
         const desc  = String(r[3]||'').trim();
         if(!ref || !name) return;
-
         if(!state.items.some(it=>it.ref===ref)){
-          state.items.push({ref, name, price, desc});
+          state.items.push({ref,name,price,desc});
         }
       });
     }
 
-    // 🔥 hoja 2 -> placas
-    if(wb.SheetNames.length>2){
+    // PLACAS
+    if(wb.SheetNames.length > 2){
       const s2 = wb.Sheets[wb.SheetNames[2]];
       const rows2 = XLSX.utils.sheet_to_json(s2,{header:1});
       rows2.forEach((r,i)=>{
         if(i===0) return;
         const plate = String(r[0]||'').trim();
-        const tipo  = String(r[1]||'').trim();
+        const type  = String(r[1]||'').trim();
         if(!plate) return;
-
         if(!state.plates.some(p=>p.plate===plate)){
-          state.plates.push({plate, type: tipo});
+          state.plates.push({plate,type});
         }
       });
     }
@@ -170,16 +154,9 @@ export async function initFromExcelAssets(){
     saveState();
     renderDrivers();
     renderPlates();
-    console.log('✔ Auto import desde assets/BASE DE DATOS.xlsx finalizado');
+    console.log('✔ Auto import desde assets');
 
   }catch(e){
-    console.warn('⚠ No se pudo importar desde assets', e);
+    console.warn('⚠ No se pudo auto importar', e);
   }
 }
-
-/* ======================================================
-   🔥 FIX A NIVEL GLOBAL (opcional pero recomendado)
-====================================================== */
-
-// Evita overlays invisibles
-document.body.style.pointerEvents = 'auto';
