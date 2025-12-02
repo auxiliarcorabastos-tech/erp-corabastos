@@ -3,34 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ERP Corabastos — V4.1 </title>
-<style>
-:root{--bg:#f4f6f9;--panel:#0b1220;--accent:#0a57ff;--card:#ffffff}
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:#0f172a}
-header{background:#071025;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
-.app{display:flex;height:calc(100vh - 50px)}
-#sidebar{width:240px;background:var(--panel);color:#fff;padding:16px;display:flex;flex-direction:column;gap:8px}
-#sidebar button{background:transparent;border:0;color:#cbd5e1;text-align:left;padding:8px;border-radius:6px;cursor:pointer}
-#sidebar button:hover{background:rgba(255,255,255,0.04)}
-#sidebar button.active{background:rgba(255,255,255,0.06);color:#fff;font-weight:700}
-main{flex:1;padding:20px;overflow:auto}
-.card{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.06);margin-bottom:16px}
-input,select,textarea{width:100%;padding:8px;margin-top:6px;border-radius:6px;border:1px solid #d0d6e1}
-button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;border-radius:6px;cursor:pointer}
-.small{font-size:13px;color:#6b7280}.hidden{display:none!important}
-.table{width:100%;border-collapse:collapse}.table th,.table td{padding:8px;border-bottom:1px solid #eef4fb;text-align:left}
-.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:60}
-.modal .card{width:100%;max-width:420px}
-@media(max-width:900px){#sidebar{position:fixed;left:0;top:50px;bottom:0;transform:translateX(-100%);transition:transform .22s;z-index:40}#sidebar.open{transform:translateX(0)}main{padding:12px}}
-/* image render helper (off-screen) */
-#imgPedidoRender{position:fixed;left:-9999px;top:-9999px;visibility:hidden}
-</style>
-
-<!-- html2canvas -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-<!-- xlsx (kept for Excel import) -->
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<title>ERP Corabastos — Portable</title>
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIW2NkYGBgAAAABQABDQottAAAAABJRU5ErkJggg==" />
+<meta name="description" content="Mini ERP portable — facturación, peajes, transporte, fundaciones, items y sincronización." />
+<link rel="stylesheet" href="./assets/css/style.css" />
 </head>
 <body>
 <header>
@@ -43,7 +19,6 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
     <button id="btnLogout" class="primary hidden">Cerrar sesión</button>
   </div>
 </header>
-
 <div class="app">
   <aside id="sidebar">
     <button data-sec="dashboard">Dashboard</button>
@@ -52,20 +27,12 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
     <button data-sec="conductores">Conductores</button>
     <button data-sec="recibos">Pedidos</button>
     <button data-sec="search">Buscar</button>
-    <hr style="border-color:rgba(255,255,255,0.04);">
-    <button data-sec="usuarios">Mi Cuenta</button>
-    <button data-sec="admin_users" id="btnAdminUsers">Usuarios (Admin)</button>
-    <button data-sec="auditoria">Auditoría</button>
-    <button data-sec="seguimiento">Seguimiento</button>
-    <button data-sec="roles">Gestión Roles</button>
   </aside>
-
   <main id="main">
     <section id="dashboard" class="card">
       <h2>Bienvenido</h2>
-      <p class="small">Versión estable. Inicie sesión para usar el sistema.</p>
+      <p class="small">Versión portable.</p>
     </section>
-
     <section id="fundaciones" class="hidden">
       <h2>Fundaciones</h2>
       <div class="card">
@@ -74,506 +41,68 @@ button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;bor
         <label>Nombre</label><input id="f_name">
         <button id="btnFundCreate" class="primary" style="margin-top:10px">Crear Fundación</button>
       </div>
-
-      <div class="card">
-        <h3>Añadir Punto de Envío</h3>
-        <label>Fundación</label><select id="selFund"></select>
-        <label>Barrio</label><input id="p_barrio">
-        <label>Localidad</label><input id="p_localidad">
-        <label>Ciudad</label><input id="p_ciudad">
-        <label>Teléfono 1</label><input id="p_tel1">
-        <label>Teléfono 2</label><input id="p_tel2">
-        <label>Encargada</label><input id="p_encargada">
-        <button id="btnPointCreate" class="primary" style="margin-top:10px">Agregar Punto</button>
-      </div>
-
-      <div class="card">
-        <h3>Cargar Fundaciones desde Excel</h3>
-        <input id="excel_fundaciones" type="file" accept=".xlsx,.xls">
-        <button id="btnImportFund" class="primary" style="margin-top:10px">Importar Excel</button>
-      </div>
-
       <div class="card">
         <h3>Listado</h3>
         <input id="searchFund" placeholder="Buscar fundaciones..." style="margin-bottom:10px">
         <div id="fundList"></div>
       </div>
     </section>
-
     <section id="items" class="hidden">
       <h2>Items</h2>
       <div class="card">
         <label>Referencia</label><input id="item_ref">
         <label>Nombre</label><input id="item_name">
-        <label>Descripción</label><input id="item_desc">
         <label>Precio</label><input id="item_price" type="number">
         <button id="btnCreateItem" class="primary" style="margin-top:10px">Agregar Item</button>
       </div>
-
-      <div class="card">
-        <h3>Cargar Items desde Excel</h3>
-        <input id="excel_items" type="file" accept=".xlsx,.xls">
-        <button id="btnImportItems" class="primary" style="margin-top:10px">Importar Excel</button>
-      </div>
-
-      <div class="card">
-        <h3>Gestionar Embalajes</h3>
-        <input id="new_pack" placeholder="Nuevo embalaje">
-        <button id="btnAddPack" class="primary" style="margin-top:10px">Agregar</button>
-        <ul id="packList" class="small" style="padding-left:18px;margin-top:10px"></ul>
-      </div>
-
       <div class="card">
         <h3>Listado de Items</h3>
         <input id="searchItems" placeholder="Buscar..." style="margin-bottom:10px">
-        <table class="table" id="itemsTable">
-          <thead>
-            <tr><th>Ref</th><th>Nombre</th><th>Descripción</th><th>Precio</th><th></th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+        <table class="table" id="itemsTable"><thead><tr><th>Ref</th><th>Nombre</th><th>Precio</th></tr></thead><tbody></tbody></table>
       </div>
     </section>
-
     <section id="conductores" class="hidden">
-      <h2>Conductores y Placas</h2>
+      <h2>Conductores</h2>
       <div class="card">
         <label>Nombre</label><input id="drv_name">
         <label>Documento</label><input id="drv_doc">
-        <label>Teléfono</label><input id="drv_tel">
-        <label>Empresa</label><input id="drv_cmp">
         <button id="btnAddDriver" class="primary" style="margin-top:10px">Agregar Conductor</button>
       </div>
-
-      <div class="card">
-        <h3>Agregar Placa</h3>
-        <label>Placa</label><input id="pl_plate">
-        <label>Tipo</label><input id="pl_type">
-        <button id="btnAddPlate" class="primary" style="margin-top:10px">Agregar</button>
-      </div>
-
       <div class="card">
         <h3>Conductores</h3>
-        <input id="searchDrivers" placeholder="Buscar..." style="margin-bottom:10px">
         <ul id="driversList"></ul>
       </div>
-
-      <div class="card">
-        <h3>Placas</h3>
-        <input id="searchPlates" placeholder="Buscar..." style="margin-bottom:10px">
-        <ul id="platesList"></ul>
-      </div>
     </section>
-
-    <section id="search" class="hidden">
-      <h2>Buscador Global</h2>
-      <input id="globalSearch" placeholder="Buscar..." style="margin-bottom:10px">
-      <div id="globalResults"></div>
-    </section>
-
     <section id="recibos" class="hidden">
       <h2>Pedidos</h2>
       <div class="card">
-        <h3>Crear Pedido</h3>
         <label>NIT Fundación</label><input id="pd_nit">
         <div id="pd_fund_info" class="small" style="margin-top:6px"></div>
-        <label>Fundación (seleccione)</label><select id="pd_fund"></select>
-        <label>Punto de Envío</label><select id="pd_point"></select>
+        <label>Punto de Envío</label><input id="pd_point">
         <label>Conductor</label><select id="pd_driver"></select>
         <label>Placa</label><select id="pd_plate"></select>
         <label>Peaje</label><input id="pd_peaje" type="number">
         <label>Costo de Transporte</label><input id="pd_trans" type="number">
-
         <h3 style="margin-top:12px">Agregar Items</h3>
-        <label>Item</label>
         <select id="pd_item_sel" style="width:100%;margin-bottom:6px"></select>
-        <label>Embalaje (opcional)</label>
-        <select id="pd_pack_sel" style="width:100%;margin-bottom:6px"></select>
-        <label>Cantidad de Embalaje</label>
-        <input id="pd_pack_qty" type="number" placeholder="Cant. Embalaje" value="1">
-        <label>Kilos (obligatorio)</label>
-        <input id="pd_kilos" type="number" placeholder="Kilos (obligatorio)">
+        <label>Cantidad de Embalaje</label><input id="pd_pack_qty" type="number" placeholder="Cant. Embalaje" value="1">
+        <label>Kilos (obligatorio)</label><input id="pd_kilos" type="number" placeholder="Kilos (obligatorio)">
         <button id="pd_add_item" class="primary" style="margin-bottom:10px">Agregar producto</button>
-        <ul id="pd_items_list" style="margin-top:10px"></ul>
-
+        <ul id="pd_items_list"></ul>
         <div style="display:flex;gap:8px;margin-top:12px">
           <button id="btnAddPedido" class="primary">Guardar Pedido</button>
           <button id="btnExportPedidoCSV" class="primary">Exportar CSV</button>
+          <button id="btnExportPedidoIMG" class="primary">Exportar IMG</button>
         </div>
       </div>
-
       <div class="card">
-        <h3>Listado de Pedidos (historial)</h3>
+        <h3>Listado de Pedidos</h3>
         <input id="searchPedidos" placeholder="Buscar..." style="margin-bottom:10px">
         <ul id="pedidosList"></ul>
       </div>
     </section>
-
-    <section id="usuarios" class="hidden">
-      <h2>Mi Cuenta</h2>
-      <div class="card">
-        <label>Usuario (no editable)</label>
-        <input id="usr_username" disabled>
-        <label>Nombre completo</label><input id="usr_fullname">
-        <label>Teléfono</label><input id="usr_phone">
-        <label>Correo</label><input id="usr_email">
-        <label>Contraseña</label><input id="usr_password" type="password">
-        <button id="btnUserPassSave" class="primary" style="margin-top:10px">Guardar</button>
-      </div>
-    </section>
-
-    <section id="admin_users" class="hidden">
-      <h2>Gestión de Usuarios (Admin)</h2>
-      <div class="card">
-        <label>Nuevo Usuario</label>
-        <input id="adm_new_user" placeholder="Usuario">
-        <label>Contraseña</label>
-        <input id="adm_new_pass" type="password">
-        <label>Rol</label>
-        <select id="adm_new_role"><option value="general">General</option><option value="admin">Administrador</option><option value="lector">Lector</option></select>
-        <button id="adm_add_user" class="primary" style="margin-top:10px">Crear Usuario</button>
-      </div>
-      <div class="card">
-        <h3>Usuarios Registrados</h3>
-        <ul id="adm_user_list" class="small" style="padding-left:18px"></ul>
-      </div>
-    </section>
-
-    <section id="auditoria" class="hidden">
-      <h2>Auditoría</h2>
-      <div class="card">
-        <label>Filtrar por usuario</label>
-        <input id="auditUserFilter" placeholder="Usuario">
-        <label>Filtrar por fecha</label>
-        <input id="auditDateFilter" type="date">
-      </div>
-      <div id="auditList" class="card small"></div>
-    </section>
-
-    <section id="seguimiento" class="hidden">
-      <h2>Seguimiento</h2>
-      <div class="card">
-        <table class="table" id="segTable"><thead><tr><th>Fecha</th><th>Fundación</th><th>Barrio</th><th>Kilos</th><th>Conductor</th></tr></thead><tbody></tbody></table>
-      </div>
-    </section>
-
-    <section id="roles" class="hidden">
-      <h2>Roles</h2>
-      <div class="card small">Gestión de roles disponible para administrador.</div>
-    </section>
   </main>
 </div>
-
-<!-- LOGIN modal (required) -->
-<div id="loginModal" class="modal">
-  <div class="card">
-    <h3>Iniciar sesión</h3>
-    <label>Usuario</label><input id="login_user">
-    <label>Contraseña <small style="color:#6b7280">(<a href="#" id="togglePass">mostrar</a>)</small></label>
-    <input id="login_pass" type="password">
-    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
-      <button id="btnLogin" class="primary">Ingresar</button>
-      <div id="loginStatus" class="small" style="color:#6b7280"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Off-screen container used to render the image -->
-<div id="imgPedidoRender"></div>
-
-<script>
-document.addEventListener('DOMContentLoaded',function(){
-  const $ = id => document.getElementById(id);
-
-  // state in localStorage
-  let state = JSON.parse(localStorage.getItem('erp_state')||'null') || {};
-  state.users = Array.isArray(state.users)? state.users : [{username:'admin',pass:'admin',role:'admin',fullname:'Administrador'}];
-  state.currentUser = state.currentUser || null;
-  state.foundations = Array.isArray(state.foundations)? state.foundations : [];
-  state.items = Array.isArray(state.items)? state.items : [];
-  state.packs = Array.isArray(state.packs)? state.packs : ['Atado','Bulto','Canastilla','Caja','Unidad'];
-  state.drivers = Array.isArray(state.drivers)? state.drivers : [];
-  state.plates = Array.isArray(state.plates)? state.plates : [];
-  state.pedidos = Array.isArray(state.pedidos)? state.pedidos : [];
-  state.audit = Array.isArray(state.audit)? state.audit : [];
-  function save(){ localStorage.setItem('erp_state', JSON.stringify(state)); }
-
-  function registrarAccion(accion,detalle){ const rec={fecha:new Date().toISOString(),usuario: state.currentUser?state.currentUser.username:'-',accion,detalle}; state.audit.unshift(rec); save(); renderAudit(); }
-
-  // NAV helpers
-  function showSection(id){
-    document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
-    const el = document.getElementById(id);
-    if(el) el.classList.remove('hidden');
-    document.querySelectorAll('#sidebar button').forEach(b=>b.classList.remove('active'));
-    const btn=document.querySelector('#sidebar button[data-sec="'+id+'"]');
-    if(btn) btn.classList.add('active');
-  }
-  document.querySelectorAll('#sidebar button').forEach(b=> b.addEventListener('click', ()=> showSection(b.dataset.sec) ));
-  $('btnMenu').addEventListener('click', ()=> document.getElementById('sidebar').classList.toggle('open'));
-
-  // login modal
-  function openLogin(){ $('loginModal').classList.remove('hidden'); }
-  function closeLogin(){ $('loginModal').classList.add('hidden'); }
-
-  // toggle password visibility
-  $('togglePass').addEventListener('click', function(ev){ ev.preventDefault(); const p=$('login_pass'); p.type = p.type === 'password' ? 'text' : 'password'; this.textContent = p.type==='password'? 'mostrar':'ocultar'; });
-
-  function setCurrentUser(user){
-    state.currentUser = user; save();
-    $('headerUser').innerText = user.username + ' ('+user.role+')';
-    $('btnLogout').classList.remove('hidden');
-    if(user.role !== 'admin') { $('btnAdminUsers').style.display = 'none'; } else { $('btnAdminUsers').style.display = 'block'; }
-    closeLogin();
-    renderAll();
-    showSection('dashboard');
-  }
-
-  // login handler
-  $('btnLogin').addEventListener('click', function(){
-    const u = $('login_user').value.trim(); const p = $('login_pass').value.trim();
-    if(!u || !p){ alert('Usuario y clave requeridos'); return; }
-    $('loginStatus').innerText = 'Iniciando...';
-    setTimeout(()=>{
-      const found = state.users.find(x=>x.username===u && x.pass===p);
-      if(!found){ alert('Usuario o clave incorrectos'); $('loginStatus').innerText=''; return; }
-      setCurrentUser(found); registrarAccion('login',{user:u}); $('login_user').value=''; $('login_pass').value=''; $('loginStatus').innerText='';
-    },400);
-  });
-
-  $('btnLogout').addEventListener('click', function(){ if(confirm('Cerrar sesión?')){ state.currentUser = null; save(); $('headerUser').innerText = 'Invitado'; $('btnLogout').classList.add('hidden'); openLogin(); } });
-
-  if(!state.currentUser){ openLogin(); } else { setCurrentUser(state.currentUser); }
-
-  // Fillers and renderers
-  function fillFundSelects(){
-    const sel = $('selFund'); if(sel){ sel.innerHTML=''; state.foundations.forEach((f,i)=> sel.appendChild(new Option(f.name+' ('+f.nit+')', i))); }
-    const pf = $('pd_fund'); if(pf){ pf.innerHTML=''; state.foundations.forEach((f,i)=> pf.appendChild(new Option(f.name, i))); fillPedidoPoints(); }
-  }
-  function fillPedidoPoints(){ const sel=$('pd_point'); if(!sel) return; sel.innerHTML=''; const fi=Number($('pd_fund').value||0); const f= state.foundations[fi]; if(f && Array.isArray(f.points)){ f.points.forEach((p,i)=> sel.appendChild(new Option(p.barrio+' ('+p.localidad+' - '+p.ciudad+')', i))); } }
-  function fillItemSelect(){ const sel=$('pd_item_sel'); if(!sel) return; sel.innerHTML=''; state.items.forEach((it,i)=> sel.appendChild(new Option(it.name+' - $'+(it.price||0), i))); }
-  function fillPackSelect(){ const sel=$('pd_pack_sel'); if(!sel) return; sel.innerHTML=''; sel.appendChild(new Option('','')); state.packs.forEach(p=> sel.appendChild(new Option(p,p))); }
-  function fillDriverPlate(){ const sd=$('pd_driver'); const sp=$('pd_plate'); if(sd){ sd.innerHTML=''; state.drivers.forEach((d,i)=> sd.appendChild(new Option(d.name,i))); } if(sp){ sp.innerHTML=''; state.plates.forEach((p,i)=> sp.appendChild(new Option(p.plate,i))); } }
-
-  function renderFund(){
-    const box=$('fundList'); if(!box) return; box.innerHTML='';
-    state.foundations.forEach((f,idx)=>{ const d=document.createElement('div'); d.className='card'; d.style.marginBottom='8px'; let html = '<strong>'+f.name+'</strong><div class="small">NIT: '+f.nit+'</div>'; if(Array.isArray(f.points) && f.points.length){ html += '<div style="margin-top:8px">'; f.points.forEach((p)=>{ html += '<div class="small">'+p.barrio+' — '+p.localidad+' — '+p.ciudad+' — '+(p.encargada||'')+' — '+(p.tel1||'')+'</div>'; }); html += '</div>'; } else { html += '<div class="small">Sin puntos</div>'; } d.innerHTML = html; box.appendChild(d); });
-  }
-
-  function renderItems(){
-    const tbody = $('itemsTable').querySelector('tbody'); tbody.innerHTML='';
-    state.items.forEach((it,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = '<td>'+ (it.ref || '') +'</td><td>'+ (it.name || '') +'</td><td>'+(it.desc||'')+'</td><td>$'+(it.price||0)+'</td><td><button data-i="'+i+'" class="delItem">Eliminar</button></td>'; tbody.appendChild(tr); });
-    document.querySelectorAll('.delItem').forEach(btn=> btn.addEventListener('click', function(){ if(!state.currentUser || state.currentUser.role!=='admin'){ return alert('Solo admin puede eliminar'); } const idx=Number(this.dataset.i); state.items.splice(idx,1); save(); renderItems(); registrarAccion('eliminar_item',{index:idx}); }));
-  }
-
-  function renderPacks(){ const ul=$('packList'); if(!ul) return; ul.innerHTML=''; state.packs.forEach((p,i)=>{ const li=document.createElement('li'); li.textContent = p + ' '; const del=document.createElement('button'); del.textContent='Eliminar'; del.style.marginLeft='8px'; del.addEventListener('click', ()=>{ if(!state.currentUser || state.currentUser.role!=='admin') return alert('Solo admin'); state.packs.splice(i,1); save(); renderPacks(); }); li.appendChild(del); ul.appendChild(li); }); }
-
-  function renderDrivers(){ const ul=$('driversList'); if(!ul) return; ul.innerHTML=''; state.drivers.forEach((d,i)=>{ const li=document.createElement('li'); li.textContent = d.name + ' — ' + (d.document||''); ul.appendChild(li); }); }
-  function renderPlates(){ const ul=$('platesList'); if(!ul) return; ul.innerHTML=''; state.plates.forEach((p,i)=>{ const li=document.createElement('li'); li.textContent = p.plate + ' ('+(p.type||'')+')'; ul.appendChild(li); }); }
-
-  function renderPedidos(){
-    const ul=$('pedidosList'); if(!ul) return; ul.innerHTML='';
-    state.pedidos.forEach((p,idx)=>{ 
-      const li=document.createElement('li'); li.style.marginBottom='8px'; li.style.listStyle='none';
-      const created = new Date(p.createdAt).toLocaleString();
-      let html = '<div style="padding:10px;border-radius:8px;background:#fff;box-shadow:0 4px 10px rgba(0,0,0,0.04)">';
-      html += '<div><strong>'+p.id+'</strong> — '+(p.foundation||'')+' (NIT: '+(p.foundationNIT||'')+')</div>';
-      html += '<div class="small">'+created+'</div>';
-      html += '<div class="small">Punto: '+(p.point?.barrio||'')+' — '+(p.point?.localidad||'')+' — '+(p.point?.ciudad||'')+'</div>';
-      html += '<div class="small">Encargada: '+(p.point?.encargada||'')+' | Tels: '+(p.point?.tel1||'')+' '+(p.point?.tel2||'')+'</div>';
-      html += '<div class="small">Conductor: '+(p.driver?.name||'—')+' | Placa: '+(p.driver?.plate||p.driver?.plate||'—')+'</div>';
-      html += '<div class="small">Peaje: $'+(p.peaje||0)+' — Transporte: $'+(p.trans||0)+'</div>';
-      html += '<div style="margin-top:8px"><strong>Items:</strong></div>';
-      html += '<ul class="small">';
-      (p.items||[]).forEach(it=> html += '<li>'+ (it.name || it.ref || '') +' — Embalaje: '+(it.pack||'')+' — Cant: '+(it.qty||1)+' — Kilos: '+(it.kgs||it.kgs===0?it.kgs:'—') +' — $'+(it.price||0)+'</li>');
-      html += '</ul>';
-      html += '<div style="margin-top:8px">';
-      html += '<button class="primary btnHoras" data-i="'+idx+'">Registrar Horas</button> ';
-      html += '<button class="primary btnCopiar" data-i="'+idx+'">Copiar</button> ';
-      html += '<button class="primary btnVer" data-i="'+idx+'">Ver</button> ';
-      html += '<button class="primary btnImgPedido" data-i="'+idx+'">Imagen</button>';
-      html += '</div></div>';
-      li.innerHTML = html;
-      ul.appendChild(li);
-    });
-
-    // attach events after DOM nodes created
-    document.querySelectorAll('.btnHoras').forEach(btn=> btn.addEventListener('click', function(){ const i=Number(this.dataset.i); const p=state.pedidos[i]; const hL=prompt('Hora de llegada (HH:MM)', p.horaLlegada||''); if(!hL) return; const hS=prompt('Hora de salida (HH:MM)', p.horaSalida||''); if(!hS) return; p.horaLlegada=hL; p.horaSalida=hS; save(); renderPedidos(); registrarAccion('registrar_horas',{id:p.id,hL,hS}); }));
-    document.querySelectorAll('.btnCopiar').forEach(btn=> btn.addEventListener('click', function(){ const i=Number(this.dataset.i); const p=state.pedidos[i]; const nit = prompt('NIT de la nueva fundación'); if(!nit) return; const f = state.foundations.find(x=>x.nit===nit); if(!f) return alert('NIT no registrado'); const newPedido = JSON.parse(JSON.stringify(p)); newPedido.id = 'PED-'+Date.now(); newPedido.foundation = f.name; newPedido.foundationNIT = f.nit; state.pedidos.unshift(newPedido); save(); renderPedidos(); registrarAccion('copiar_pedido',{base:p.id,new:newPedido.id}); alert('Pedido copiado: '+newPedido.id); }));
-    document.querySelectorAll('.btnVer').forEach(btn=> btn.addEventListener('click', function(){ const i=Number(this.dataset.i); verPedido(i); }));
-    document.querySelectorAll('.btnImgPedido').forEach(btn=> btn.addEventListener('click', function(){ const i=Number(this.dataset.i); exportarPedidoImagen(i); }));
-  }
-
-  function renderAudit(){ const box=$('auditList'); if(!box) return; box.innerHTML=''; const uf=$('auditUserFilter').value.trim().toLowerCase(); const df=$('auditDateFilter').value; state.audit.forEach(a=>{ const dstr=new Date(a.fecha).toISOString().slice(0,10); if(uf && !a.usuario.toLowerCase().includes(uf)) return; if(df && dstr!==df) return; const d=document.createElement('div'); d.style.marginBottom='8px'; d.innerHTML='<b>['+new Date(a.fecha).toLocaleString()+'] '+a.usuario+'</b> — '+a.accion+' <div class="small">'+JSON.stringify(a.detalle)+'</div>'; box.appendChild(d); }); }
-
-  $('auditUserFilter').addEventListener('input',renderAudit);
-  $('auditDateFilter').addEventListener('change',renderAudit);
-
-  // IMPORT Excel fundaciones
-  $('btnImportFund').addEventListener('click', ()=>{ const file = $('excel_fundaciones').files[0]; if(!file) return alert('Seleccione un archivo Excel.'); const reader = new FileReader(); reader.onload = e => { const data = new Uint8Array(e.target.result); const wb = XLSX.read(data,{type:'array'}); const sheet = wb.Sheets[wb.SheetNames[0]]; const rows = XLSX.utils.sheet_to_json(sheet,{header:1}); rows.forEach((r,i)=>{ if(i===0) return; const nit = String(r[0]||'').trim(); const name = String(r[1]||'').trim(); if(!nit||!name) return; if(!state.foundations.some(f=>f.nit===nit)){ state.foundations.push({nit,name,points:[]}); } }); save(); fillFundSelects(); renderFund(); registrarAccion('importar_fund_excel',{cant:rows.length}); alert('Fundaciones importadas.'); }; reader.readAsArrayBuffer(file); });
-
-  // IMPORT Excel items
-  $('btnImportItems').addEventListener('click', ()=>{ const file = $('excel_items').files[0]; if(!file) return alert('Seleccione un archivo Excel.'); const reader = new FileReader(); reader.onload = e => { const data = new Uint8Array(e.target.result); const wb = XLSX.read(data,{type:'array'}); const sheet = wb.Sheets[wb.SheetNames[0]]; const rows = XLSX.utils.sheet_to_json(sheet,{header:1}); rows.forEach((r,i)=>{ if(i===0) return; const ref = String(r[0]||'').trim(); const name = String(r[1]||'').trim(); const price = Number(r[2]||0); const desc = String(r[3]||'').trim(); if(!ref||!name) return; if(!state.items.some(it=>it.ref===ref)){ state.items.push({ref,name,desc,price}); } }); save(); renderItems(); fillItemSelect(); registrarAccion('importar_items_excel',{cant:rows.length}); alert('Items importados.'); }; reader.readAsArrayBuffer(file); });
-
-  // HANDLERS: create fund, points, items, packs, drivers, plates
-  $('btnFundCreate').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const nit=$('f_nit').value.trim(); const name=$('f_name').value.trim(); if(!nit||!name) return alert('Complete NIT y Nombre'); state.foundations.push({nit,name,points:[]}); save(); fillFundSelects(); renderFund(); registrarAccion('crear_fundacion',{nit,name}); $('f_nit').value=''; $('f_name').value=''; });
-
-  $('btnPointCreate').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const fi=Number($('selFund').value); const f = state.foundations[fi]; if(!f) return alert('Seleccione fundación'); const p={barrio:$('p_barrio').value.trim(),localidad:$('p_localidad').value.trim(),ciudad:$('p_ciudad').value.trim(),tel1:$('p_tel1').value.trim(),tel2:$('p_tel2').value.trim(),encargada:$('p_encargada').value.trim()}; f.points = f.points || []; f.points.push(p); save(); renderFund(); fillFundSelects(); registrarAccion('crear_punto',{fund:f.name,barrio:p.barrio}); $('p_barrio').value=''; });
-
-  $('btnCreateItem').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const ref=$('item_ref').value.trim(); const name=$('item_name').value.trim(); if(!ref||!name) return alert('Nombre y referencia requeridos'); const desc=$('item_desc').value.trim(); const price=Number($('item_price').value)||0; state.items.push({ref,name,desc,price}); save(); renderItems(); fillItemSelect(); registrarAccion('crear_item',{ref,name}); $('item_ref').value=''; $('item_name').value=''; $('item_desc').value=''; $('item_price').value=''; });
-
-  $('btnAddPack').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const v=$('new_pack').value.trim(); if(!v) return alert('Ingrese nombre'); state.packs.push(v); save(); renderPacks(); $('new_pack').value=''; registrarAccion('crear_embalaje',{pack:v}); });
-
-  $('btnAddDriver').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const d={name:$('drv_name').value.trim(),document:$('drv_doc').value.trim(),phone:$('drv_tel').value.trim(),company:$('drv_cmp').value.trim()}; if(!d.name) return alert('Nombre requerido'); state.drivers.push(d); save(); renderDrivers(); fillDriverPlate(); registrarAccion('crear_conductor',d); $('drv_name').value=''; $('drv_doc').value=''; $('drv_tel').value=''; $('drv_cmp').value=''; });
-
-  $('btnAddPlate').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const p={plate:$('pl_plate').value.trim(),type:$('pl_type').value.trim()}; if(!p.plate) return alert('Placa requerida'); state.plates.push(p); save(); renderPlates(); fillDriverPlate(); registrarAccion('crear_placa',p); $('pl_plate').value=''; $('pl_type').value=''; });
-
-  // Pedido flow
-  let currentPedidoItems = [];
-  function refreshPdItems(){ const ul=$('pd_items_list'); if(!ul) return; ul.innerHTML=''; currentPedidoItems.forEach((it,idx)=>{ const li=document.createElement('li'); li.style.marginBottom='6px'; li.textContent = it.name + ' x' + (it.qty||1) + ' — ' + (it.kgs? it.kgs+'kg':'' ) + ' — $'+(it.price||0); const del=document.createElement('button'); del.textContent='Eliminar'; del.style.marginLeft='8px'; del.addEventListener('click', ()=>{ currentPedidoItems.splice(idx,1); refreshPdItems(); }); li.appendChild(del); ul.appendChild(li); }); }
-
-  $('pd_add_item').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const idx = Number($('pd_item_sel').value); if(isNaN(idx) || !state.items[idx]) return alert('Seleccione item'); const pack = $('pd_pack_sel').value || ''; const packQty = Number($('pd_pack_qty').value)||1; const kgs = Number($('pd_kilos').value); if(!kgs){ return alert('Kilos obligatorios'); } const it = state.items[idx]; const qty = packQty || 1; currentPedidoItems.push({ref:it.ref,name:it.name,price:it.price||0,qty,pack,kgs}); refreshPdItems(); });
-
-  $('pd_fund').addEventListener('change', ()=> fillPedidoPoints());
-
-  $('btnAddPedido').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const fi=Number($('pd_fund').value); const f=state.foundations[fi]; if(!f) return alert('Seleccione fundación'); const pi=Number($('pd_point').value); const point=(f.points||[])[pi]; if(!point) return alert('Seleccione punto'); if(currentPedidoItems.length===0) return alert('Agregue items'); const peaje=Number($('pd_peaje').value)||0; const trans=Number($('pd_trans').value)||0; const subtotal=currentPedidoItems.reduce((s,it)=>s+(it.price||0)*(it.qty||1),0); const total=subtotal+peaje+trans; const pedido = { id:'PED-'+Date.now(), foundation:f.name, foundationNIT:f.nit, point, items: currentPedidoItems.slice(), peaje, trans, total, driver:null, createdAt:new Date().toISOString() }; state.pedidos.unshift(pedido); save(); registrarAccion('crear_pedido',{id:pedido.id,foundation:f.name,total}); currentPedidoItems=[]; refreshPdItems(); renderPedidos(); alert('Pedido creado: '+pedido.id); });
-
-  $('btnExportPedidoCSV').addEventListener('click', ()=>{ const rows=[['id','fundacion','punto','item','pack','qty','kgs','precio','peaje','trans','total','fecha']]; state.pedidos.forEach(p=> p.items.forEach(it=> rows.push([p.id,p.foundation,p.point?.barrio||'',it.name,it.pack,it.qty,it.kgs,it.price,p.peaje,p.trans,p.total,p.createdAt]))); const csv = rows.map(r=> r.map(c=> '"'+(''+c).replace(/"/g,'""')+'"').join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='pedidos.csv'; a.click(); URL.revokeObjectURL(url); });
-
-  // Admin users
-  function renderAdminUsers(){ const ul=$('adm_user_list'); if(!ul) return; ul.innerHTML=''; state.users.forEach((u,i)=>{ const li=document.createElement('li'); li.style.marginBottom='8px'; li.innerHTML = '<b>'+u.username+'</b> — '+u.role; if(state.currentUser && state.currentUser.role==='admin'){ const btnE=document.createElement('button'); btnE.textContent='Editar'; btnE.style.marginLeft='8px'; btnE.addEventListener('click', ()=>{ const newRole=prompt('Rol (admin/general/lector)',u.role); if(newRole){ u.role=newRole; save(); renderAdminUsers(); registrarAccion('editar_usuario',{username:u.username,role:newRole}); } }); const btnD=document.createElement('button'); btnD.textContent='Eliminar'; btnD.style.marginLeft='8px'; btnD.addEventListener('click', ()=>{ if(u.username==='admin') return alert('No eliminar admin principal'); if(!confirm('Eliminar usuario?')) return; state.users.splice(i,1); save(); renderAdminUsers(); registrarAccion('eliminar_usuario',{username:u.username}); }); li.appendChild(btnE); li.appendChild(btnD); } ul.appendChild(li); }); }
-
-  $('adm_add_user').addEventListener('click', ()=>{ if(!state.currentUser || state.currentUser.role!=='admin') return alert('Solo admin'); const user=$('adm_new_user').value.trim(); const pass=$('adm_new_pass').value.trim(); const role=$('adm_new_role').value; if(!user||!pass) return alert('Complete'); if(state.users.some(x=>x.username===user)) return alert('Usuario existe'); state.users.push({username:user,pass,role,fullname:'',phone:'',email:''}); save(); renderAdminUsers(); registrarAccion('crear_usuario',{username:user,role}); alert('Usuario creado'); });
-
-  function renderAll(){ fillFundSelects(); fillItemSelect(); fillPackSelect(); fillDriverPlate(); renderFund(); renderItems(); renderPacks(); renderDrivers(); renderPlates(); renderPedidos(); renderAudit(); renderAdminUsers(); }
-
-  // VER pedido (modal-simple alert)
-  function verPedido(i){
-    const p = state.pedidos[i];
-    if(!p) return;
-    let s = `Pedido: ${p.id}\nFundación: ${p.foundation} (NIT: ${p.foundationNIT})\nPunto: ${p.point?.barrio||''} - ${p.point?.localidad||''}\nConductor: ${p.driver?.name||'--'}\nPlaca: ${p.driver?.plate||'--'}\nPeaje: $${p.peaje}\nTransporte: $${p.trans}\n\nItems:\n`;
-    (p.items||[]).forEach(it=> s += `- ${it.name} | Emb: ${it.pack||''} | Cant: ${it.qty} | Kgs: ${it.kgs} | $${it.price}\n`);
-    alert(s);
-  }
-
-  // EXPORTAR imagen (historial) — main function requested
-  function exportarPedidoImagen(index){
-    const p = state.pedidos[index];
-    if(!p) return alert('Pedido no encontrado');
-    // Build a wide horizontal render container
-    const container = document.createElement('div');
-    container.style.width = '1400px';
-    container.style.padding = '32px';
-    container.style.fontFamily = 'Arial, Helvetica, sans-serif';
-    container.style.background = '#fff';
-    container.style.color = '#000';
-    container.style.boxSizing = 'border-box';
-    // header
-    const totalKilos = (p.items||[]).reduce((s,it)=> s + (Number(it.kgs)||0), 0);
-    const subtotal = (p.items||[]).reduce((s,it)=> s + (Number(it.price)||0) * (Number(it.qty)||1), 0);
-    const total = subtotal + (Number(p.peaje)||0) + (Number(p.trans)||0);
-    const headerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
-        <div>
-          <div style="font-size:28px;font-weight:700">PEDIDO</div>
-          <div style="margin-top:6px"><b>ID:</b> ${p.id}</div>
-          <div><b>Fecha:</b> ${new Date(p.createdAt).toLocaleString()}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:20px;font-weight:700">${p.foundation||''}</div>
-          <div><b>NIT:</b> ${p.foundationNIT||''}</div>
-        </div>
-      </div>
-      <hr style="border:none;border-top:1px solid #ddd;margin:12px 0">
-      <div style="display:flex;justify-content:space-between;margin-bottom:10px">
-        <div>
-          <div><b>Punto de envío</b></div>
-          <div>${p.point?.barrio||''} — ${p.point?.localidad||''} — ${p.point?.ciudad||''}</div>
-          <div class="small">Encargada: ${p.point?.encargada||''}</div>
-          <div class="small">Tels: ${p.point?.tel1||''} ${p.point?.tel2||''}</div>
-        </div>
-        <div style="text-align:right">
-          <div><b>Conductor:</b> ${p.driver?.name||''}</div>
-          <div><b>Placa:</b> ${p.driver?.plate||''}</div>
-          <div><b>Peaje:</b> $${p.peaje||0}</div>
-          <div><b>Transporte:</b> $${p.trans||0}</div>
-        </div>
-      </div>
-      <hr style="border:none;border-top:1px solid #ddd;margin:12px 0">
-      <div style="margin-top:10px">
-        <table style="width:100%;border-collapse:collapse;font-size:16px">
-          <thead>
-            <tr>
-              <th style="border:1px solid #333;padding:10px;text-align:left">Item</th>
-              <th style="border:1px solid #333;padding:10px;text-align:left">Embalaje</th>
-              <th style="border:1px solid #333;padding:10px;text-align:right">Cantidad</th>
-              <th style="border:1px solid #333;padding:10px;text-align:right">Kilos</th>
-              <th style="border:1px solid #333;padding:10px;text-align:right">Precio</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(p.items||[]).map(it=>`
-              <tr>
-                <td style="border:1px solid #333;padding:10px">${escapeHtml(it.name||it.ref||'')}</td>
-                <td style="border:1px solid #333;padding:10px">${escapeHtml(it.pack||'')}</td>
-                <td style="border:1px solid #333;padding:10px;text-align:right">${it.qty||1}</td>
-                <td style="border:1px solid #333;padding:10px;text-align:right">${it.kgs||0}</td>
-                <td style="border:1px solid #333;padding:10px;text-align:right">$${(it.price||0).toLocaleString()}</td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:12px;font-size:18px">
-        <div style="text-align:right">
-          <div><b>Subtotal:</b> $${subtotal.toLocaleString()}</div>
-          <div><b>Peaje:</b> $${(p.peaje||0).toLocaleString()}</div>
-          <div><b>Transporte:</b> $${(p.trans||0).toLocaleString()}</div>
-          <div style="font-size:20px;margin-top:6px"><b>Total:</b> $${total.toLocaleString()}</div>
-          <div style="margin-top:6px"><b>Total Kilos:</b> ${totalKilos}</div>
-        </div>
-      </div>
-    `;
-    container.innerHTML = headerHTML;
-    // append to hidden render area
-    const renderArea = $('imgPedidoRender');
-    renderArea.innerHTML = '';
-    renderArea.appendChild(container);
-    // make visible for canvas, but kept off-screen (html2canvas works)
-    container.style.visibility = 'visible';
-    // render with html2canvas (scale for better resolution)
-    html2canvas(container, { scale: 2, useCORS:true, backgroundColor: '#ffffff' }).then(canvas=>{
-      // download
-      canvas.toBlob(function(blob){
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `pedido_${p.id}.png`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-        // cleanup
-        renderArea.innerHTML = '';
-      }, 'image/png');
-    }).catch(err=>{
-      console.error(err);
-      alert('Error generando imagen: ' + (err.message||err));
-      renderArea.innerHTML = '';
-    });
-  }
-
-  // escape helper
-  function escapeHtml(s){ if(s==null) return ''; return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
-
-  // initial fill & render
-  fillFundSelects(); fillItemSelect(); fillPackSelect(); fillDriverPlate();
-  renderFund(); renderItems(); renderPacks(); renderDrivers(); renderPlates(); renderPedidos(); renderAudit(); renderAdminUsers();
-
-  // if logged -> show dashboard
-  if(state.currentUser){ setCurrentUser(state.currentUser); } else { openLogin(); }
-
-});
-</script>
+<script src="./assets/js/main.min.js"></script>
 </body>
 </html>
