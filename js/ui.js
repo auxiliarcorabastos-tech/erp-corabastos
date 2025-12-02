@@ -119,3 +119,22 @@ export async function renderAll(){
   const aud = $id('audit_user_filter');
   if(aud) { aud.innerHTML = ''; aud.appendChild(new Option('Todos','')); (state.users||[]).forEach(u=> aud.appendChild(new Option(u.username,u.username))); }
 }
+// === TOGGLE MENU ===
+const btnMenu = document.getElementById("btnMenu");
+const sidebar = document.getElementById("sidebar");
+const app = document.querySelector(".app");
+
+document.addEventListener("DOMContentLoaded", () => {
+  const closed = localStorage.getItem("menu_closed") === "1";
+  if (closed) {
+    sidebar.classList.add("closed");
+    app.classList.add("expanded");
+  }
+});
+
+btnMenu.addEventListener("click", () => {
+  const isClosed = sidebar.classList.toggle("closed");
+  app.classList.toggle("expanded", isClosed);
+  localStorage.setItem("menu_closed", isClosed ? "1" : "0");
+});
+
