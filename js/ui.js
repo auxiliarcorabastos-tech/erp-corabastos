@@ -1,140 +1,136 @@
-import { state } from './state.js';
-import { loadAll } from './auth.js';
 
-export function $id(id){ return document.getElementById(id); }
+import { state, saveState } from './state.js';
 
-export function showSection(id){
-  document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
-  const el = document.getElementById(id);
-  if(el) el.classList.remove('hidden');
-  document.querySelectorAll('#sidebar button').forEach(b=>b.classList.remove('active'));
-  const btn = document.querySelector(`#sidebar button[data-sec="${id}"]`);
-  if(btn) btn.classList.add('active');
-}
-
-export function applyRoleUI(){
-  const h = $id('headerUser');
-  if(state.currentUser){
-    h.innerText = state.currentUser.username + ' (' + state.currentUser.role + ')';
-    $id('btnLogout').style.display = 'inline-block';
-  } else {
-    h.innerText = '';
-    $id('btnLogout').style.display = 'none';
+export function setupSidebarToggle(){
+  const btn = document.getElementById('btnMenu');
+  const sidebar = document.getElementById('sidebar');
+  const main = document.getElementById('main');
+  if(!btn || !sidebar) return;
+  btn.addEventListener('click', ()=>{
+    const isMobile = window.innerWidth <= 900;
+    if(isMobile){
+      sidebar.classList.toggle('open');
+    } else {
+      const hidden = sidebar.classList.toggle('sidebar-hidden');
+      main.classList.toggle('expanded', hidden);
+      localStorage.setItem('erp_sidebar_hidden', hidden? '1':'0');
+    }
+  });
+  const saved = localStorage.getItem('erp_sidebar_hidden') === '1';
+  if(window.innerWidth>900 && saved){
+    sidebar.classList.add('sidebar-hidden');
+    main.classList.add('expanded');
   }
 }
 
-export function renderFundList(){
-  const box = $id('fundList');
-  if(!box) return;
-  box.innerHTML = '';
-  state.foundations.forEach(f=>{
-    const div = document.createElement('div');
-    div.className = 'card';
-    div.style.marginBottom = '8px';
-    div.innerHTML = `<strong>${f.name}</strong><div class='small'>NIT: ${f.nit}</div>`;
-    box.appendChild(div);
-  });
-}
-
-export function renderFundSelectors(){
-  const sel = $id('selFund');
-  const pd_fund = $id('pd_fund');
-  const seg_fund = $id('seg_fund');
-  if(sel) { sel.innerHTML = ''; state.foundations.forEach((f,i)=> sel.appendChild(new Option(f.name + ' ('+f.nit+')', f.id))); }
-  if(pd_fund) { pd_fund.innerHTML = ''; state.foundations.forEach((f,i)=> pd_fund.appendChild(new Option(f.name + ' ('+f.nit+')', f.id))); }
-  if(seg_fund) { seg_fund.innerHTML = ''; seg_fund.appendChild(new Option('Todas','')); state.foundations.forEach(f=> seg_fund.appendChild(new Option(f.name+' ('+f.nit+')', f.nit))); }
-}
-
-export function renderItemsTable(){
-  const tbody = $id('itemsTable').querySelector('tbody');
-  if(!tbody) return;
-  tbody.innerHTML = '';
-  state.items.forEach(it=>{
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${it.name}</td><td>${it.description||''}</td><td>$${it.price||0}</td><td><button data-id='${it.id}' class='delItem'>Eliminar</button></td>`;
-    tbody.appendChild(tr);
-  });
-  document.querySelectorAll('.delItem').forEach(b=> b.onclick = async ()=> {
-    const id = b.dataset.id;
-    if(!state.currentUser || state.currentUser.role !== 'admin'){ alert('Solo admin puede eliminar'); return; }
-    // deletion handled in items module
-  });
+// import plates from excel file (col A plate, col B type)
+export function importPlatesFromExcelFile(file){
+  if(!file) return alert('Seleccione un archivo');
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try{
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+      let added = 0;
+      rows.forEach((r,i)=>{
+        if(i===0) return; // skip header
+        const plate = String(r[0]||'').trim();
+        const tipo = String(r[1]||'').trim();
+        if(!plate) return;
+        if(!state.plates.some(p=>p.plate===plate)){
+          state.plates.push({plate:plate, type: tipo});
+          added++;
+        }
+      });
+      saveState();
+      alert('Placas importadas: '+added);
+      renderPlates();
+    }catch(err){
+      console.error(err);
+      alert('Error leyendo excel');
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 export function renderDrivers(){
-  const ul = $id('driversList');
+  const ul = document.getElementById('driversList');
   if(!ul) return;
-  ul.innerHTML = '';
+  ul.innerHTML='';
   state.drivers.forEach(d=>{
-    const li = document.createElement('li');
-    li.textContent = d.name + ' — ' + (d.document||'');
+    const li=document.createElement('li'); li.textContent = d.name + ' — ' + (d.document||'');
     ul.appendChild(li);
   });
 }
 
 export function renderPlates(){
-  const ul = $id('platesList');
+  const ul = document.getElementById('platesList');
   if(!ul) return;
-  ul.innerHTML = '';
+  ul.innerHTML='';
   state.plates.forEach(p=>{
-    const li = document.createElement('li');
-    li.textContent = p.plate + ' (' + (p.type||'') + ')';
+    const li=document.createElement('li'); li.textContent = p.plate + ' ('+(p.type||'')+')';
     ul.appendChild(li);
   });
 }
 
-export function renderPacks(){
-  const ul = $id('packList');
-  if(!ul) return;
-  ul.innerHTML = '';
-  state.packs.forEach((p,i)=>{
-    const li = document.createElement('li');
-    li.textContent = p;
-    ul.appendChild(li);
-  });
-}
-
-export function renderPedidosList(){
-  const ul = $id('pedidosList');
-  if(!ul) return;
-  ul.innerHTML = '';
-  state.pedidos.forEach(p=>{
-    const li = document.createElement('li');
-    li.innerHTML = `<strong>${p.id}</strong> — ${p.foundation_name||p.foundation} — $${p.total||0} <div class='small'>${new Date(p.created_at||p.createdAt||Date.now()).toLocaleString()}</div>`;
-    ul.appendChild(li);
-  });
-}
-
-export async function renderAll(){
-  await loadAll();
-  applyRoleUI();
-  renderFundList();
-  renderFundSelectors();
-  renderItemsTable();
-  renderDrivers();
-  renderPlates();
-  renderPacks();
-  renderPedidosList();
-  // populate audit users
-  const aud = $id('audit_user_filter');
-  if(aud) { aud.innerHTML = ''; aud.appendChild(new Option('Todos','')); (state.users||[]).forEach(u=> aud.appendChild(new Option(u.username,u.username))); }
-}
-// === TOGGLE MENU ===
-const btnMenu = document.getElementById("btnMenu");
-const sidebar = document.getElementById("sidebar");
-const app = document.querySelector(".app");
-
-document.addEventListener("DOMContentLoaded", () => {
-  const closed = localStorage.getItem("menu_closed") === "1";
-  if (closed) {
-    sidebar.classList.add("closed");
-    app.classList.add("expanded");
+// auto-load from assets/BASE DE DATOS.xlsx
+export async function initFromExcelAssets(){
+  try{
+    const res = await fetch('assets/BASE DE DATOS.xlsx');
+    if(!res.ok) return;
+    const ab = await res.arrayBuffer();
+    const wb = XLSX.read(new Uint8Array(ab), {type:'array'});
+    // sheet 0 -> foundations (NIT,Name)
+    if(wb.SheetNames.length>0){
+      const s0 = wb.Sheets[wb.SheetNames[0]];
+      const rows0 = XLSX.utils.sheet_to_json(s0,{header:1});
+      rows0.forEach((r,i)=>{
+        if(i===0) return;
+        const nit = String(r[0]||'').trim();
+        const name = String(r[1]||'').trim();
+        if(!nit||!name) return;
+        if(!state.foundations.some(f=>f.nit===nit)){
+          state.foundations.push({nit, name, points:[]});
+        }
+      });
+    }
+    // sheet 1 -> items (ref,name,price,desc)
+    if(wb.SheetNames.length>1){
+      const s1 = wb.Sheets[wb.SheetNames[1]];
+      const rows1 = XLSX.utils.sheet_to_json(s1,{header:1});
+      rows1.forEach((r,i)=>{
+        if(i===0) return;
+        const ref = String(r[0]||'').trim();
+        const name = String(r[1]||'').trim();
+        const price = Number(r[2]||0);
+        const desc = String(r[3]||'').trim();
+        if(!ref||!name) return;
+        if(!state.items.some(it=>it.ref===ref)){
+          state.items.push({ref,name,price,desc});
+        }
+      });
+    }
+    // sheet 2 -> plates (plate,type)
+    if(wb.SheetNames.length>2){
+      const s2 = wb.Sheets[wb.SheetNames[2]];
+      const rows2 = XLSX.utils.sheet_to_json(s2,{header:1});
+      rows2.forEach((r,i)=>{
+        if(i===0) return;
+        const plate = String(r[0]||'').trim();
+        const tipo = String(r[1]||'').trim();
+        if(!plate) return;
+        if(!state.plates.some(p=>p.plate===plate)){
+          state.plates.push({plate,tipo});
+        }
+      });
+    }
+    saveState();
+    renderDrivers();
+    renderPlates();
+    console.log('Auto import from assets finished');
+  }catch(e){
+    console.warn('No assets excel found or error', e);
   }
-});
-
-btnMenu.addEventListener("click", () => {
-  const isClosed = sidebar.classList.toggle("closed");
-  app.classList.toggle("expanded", isClosed);
-  localStorage.setItem("menu_closed", isClosed ? "1" : "0");
-});
-
+}

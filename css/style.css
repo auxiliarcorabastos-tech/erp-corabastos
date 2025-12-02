@@ -1,1 +1,22 @@
-/* CSS placeholder. Reemplaza con tu estilo completo. */
+
+:root{--bg:#f4f6f9;--panel:#0b1220;--accent:#0a57ff;--card:#ffffff}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:#0f172a}
+header{background:#071025;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+.app{display:flex;height:calc(100vh - 50px)}
+#sidebar{width:240px;background:var(--panel);color:#fff;padding:16px;display:flex;flex-direction:column;gap:8px;transition:transform .28s}
+#sidebar button{background:transparent;border:0;color:#cbd5e1;text-align:left;padding:8px;border-radius:6px;cursor:pointer}
+#sidebar button:hover{background:rgba(255,255,255,0.04)}
+#sidebar.sidebar-hidden{transform:translateX(-260px)}
+main{flex:1;padding:20px;overflow:auto;transition:margin-left .28s}
+main.expanded{margin-left:0}
+.card{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.06);margin-bottom:16px}
+input,select,textarea{width:100%;padding:8px;margin-top:6px;border-radius:6px;border:1px solid #d0d6e1}
+button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;border-radius:6px;cursor:pointer}
+.small{font-size:13px;color:#6b7280}.hidden{display:none!important}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:8px;border-bottom:1px solid #eef4fb;text-align:left}
+@media(max-width:900px){
+  #sidebar{position:fixed;left:0;top:50px;bottom:0;transform:translateX(-260px);z-index:40}
+  #sidebar.open{transform:translateX(0)}
+  main{margin-left:0!important}
+}
