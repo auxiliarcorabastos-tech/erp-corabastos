@@ -1,16 +1,17 @@
-.hidden {
-  display: none !important;
-}
-
-/* Sidebar toggle desktop */
-#sidebar.sidebar-hidden {
-  width: 0 !important;
-  padding: 0 !important;
-  overflow: hidden !important;
-}
-
-#main.expanded {
-  margin-left: 0 !important;
-  width: 100% !important;
-}
-
+/* simplified css */
+:root{--bg:#f4f6f9;--panel:#0b1220;--accent:#0a57ff;--card:#ffffff;--muted:#6b7280}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:#0f172a}
+header{background:#071025;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+header .left{display:flex;align-items:center;gap:12px}
+header .title{font-weight:700}
+.app{display:flex;height:calc(100vh - 50px)}
+#sidebar{width:240px;background:var(--panel);color:#fff;padding:16px;display:flex;flex-direction:column;gap:8px}
+#sidebar button{background:transparent;border:0;color:#cbd5e1;text-align:left;padding:8px;border-radius:6px;cursor:pointer}
+#sidebar button.active{background:rgba(255,255,255,0.06)}
+main{flex:1;padding:20px;overflow:auto}
+.card{background:var(--card);padding:16px;border-radius:10px;margin-bottom:16px}
+input,select{width:100%;padding:8px;margin-top:6px;border-radius:6px;border:1px solid #d0d6e1}
+button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;border-radius:6px;cursor:pointer}
+.small{font-size:13px;color:var(--muted)}
+.hidden{display:none!important}

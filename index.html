@@ -3,17 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ERP Corabastos — V4 (Estable)</title>
+<title>ERP Corabastos — ZIP Export</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 <header>
-  <div style="display:flex;align-items:center;gap:12px">
-    <button id="btnMenu" class="primary" style="background:transparent;border:0;color:#fff">☰</button>
-    <div style="font-size:18px;font-weight:700">ERP Corabastos</div>
+  <div class="left">
+    <button id="btnMenu" class="primary">☰</button>
+    <div class="title">ERP Corabastos</div>
   </div>
-  <div style="display:flex;align-items:center;gap:12px">
-    <div class="small" id="headerUser">Invitado</div>
+  <div class="right">
+    <div id="headerUser" class="small">Invitado</div>
     <button id="btnLogout" class="primary hidden">Cerrar sesión</button>
   </div>
 </header>
@@ -29,81 +29,94 @@
   <main id="main">
     <section id="dashboard" class="card">
       <h2>Bienvenido</h2>
-      <p class="small">Versión estable. Inicie sesión para usar el sistema.</p>
+      <p class="small">Versión ZIP — Prueba.</p>
     </section>
 
-    <section id="conductores" class="hidden">
-      <h2>Conductores y Placas</h2>
-      <div class="card">
-        <label>Nombre</label><input id="drv_name">
-        <label>Documento</label><input id="drv_doc">
-        <label>Teléfono</label><input id="drv_tel">
-        <label>Empresa</label><input id="drv_cmp">
-        <button id="btnAddDriver" class="primary" style="margin-top:10px">Agregar Conductor</button>
-      </div>
-
-      <div class="card">
-        <h3>Agregar Placa</h3>
-        <label>Placa</label><input id="pl_plate">
-        <label>Tipo</label><input id="pl_type">
-        <button id="btnAddPlate" class="primary" style="margin-top:10px">Agregar</button>
-      </div>
-
-      <div class="card">
-        <h3>Cargar placas desde Excel</h3>
-        <input id="excel_plates" type="file" accept=".xlsx,.xls" />
-        <button id="btnImportPlates" class="primary" style="margin-top:10px">Importar Placas</button>
-      </div>
-
-      <div class="card">
-        <h3>Conductores</h3>
-        <ul id="driversList"></ul>
-      </div>
-
-      <div class="card">
-        <h3>Placas</h3>
-        <ul id="platesList"></ul>
-      </div>
+    <section id="fundaciones" class="card hidden">
+      <h2>Fundaciones</h2>
+      <label>NIT</label><input id="f_nit">
+      <label>Nombre</label><input id="f_name">
+      <button id="btnFundCreate" class="primary">Crear Fundación</button>
+      <h3>Listado</h3>
+      <div id="fundList"></div>
     </section>
 
-    <section id="recibos" class="hidden">
+    <section id="items" class="card hidden">
+      <h2>Items</h2>
+      <label>Referencia</label><input id="item_ref">
+      <label>Nombre</label><input id="item_name">
+      <label>Precio</label><input id="item_price" type="number">
+      <button id="btnCreateItem" class="primary">Agregar Item</button>
+      <h3>Listado</h3>
+      <table id="itemsTable"><thead><tr><th>Ref</th><th>Nombre</th><th>Precio</th></tr></thead><tbody></tbody></table>
+    </section>
+
+    <section id="conductores" class="card hidden">
+      <h2>Conductores</h2>
+      <label>Nombre</label><input id="drv_name">
+      <label>Documento</label><input id="drv_doc">
+      <button id="btnAddDriver" class="primary">Agregar Conductor</button>
+      <h3>Conductores</h3>
+      <ul id="driversList"></ul>
+
+      <h3>Importar placas (A=placa,B=tipo)</h3>
+      <input id="excel_plates" type="file" accept=".xlsx,.xls"><button id="btnImportPlates" class="primary">Importar Placas</button>
+      <h3>Placas</h3>
+      <ul id="platesList"></ul>
+    </section>
+
+    <section id="recibos" class="card hidden">
       <h2>Pedidos</h2>
-      <div class="card">
-        <h3>Crear Pedido</h3>
-        <label>NIT Fundación</label><input id="pd_nit">
-        <div id="pd_fund_info" class="small" style="margin-top:6px"></div>
-        <label>Fundación (seleccione)</label><select id="pd_fund"></select>
-        <label>Punto de Envío</label><select id="pd_point"></select>
-        <label>Conductor</label><select id="pd_driver"></select>
-        <label>Placa</label><select id="pd_plate"></select>
-        <label>Peaje</label><input id="pd_peaje" type="number">
-        <label>Costo de Transporte</label><input id="pd_trans" type="number">
-        <h3 style="margin-top:12px">Agregar Items</h3>
-        <label>Item</label><select id="pd_item_sel"></select>
-        <label>Embalaje (opcional)</label><select id="pd_pack_sel"></select>
-        <label>Cantidad de Embalaje</label><input id="pd_pack_qty" type="number" placeholder="Cant. Embalaje" value="1">
-        <label>Kilos (obligatorio)</label><input id="pd_kilos" type="number" placeholder="Kilos (obligatorio)">
-        <button id="pd_add_item" class="primary" style="margin-bottom:10px">Agregar producto</button>
-        <ul id="pd_items_list"></ul>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button id="btnAddPedido" class="primary">Guardar Pedido</button>
-          <button id="btnExportPedidoCSV" class="primary">Exportar CSV</button>
-        </div>
+      <label>NIT Fundación</label><input id="pd_nit">
+      <div id="pd_fund_info" class="small"></div>
+      <label>Fundación (seleccione)</label><select id="pd_fund"></select>
+      <label>Punto de Envío</label><select id="pd_point"></select>
+      <label>Conductor</label><select id="pd_driver"></select>
+      <label>Placa</label><select id="pd_plate"></select>
+      <label>Peaje</label><input id="pd_peaje" type="number" value="0">
+      <label>Costo de Transporte</label><input id="pd_trans" type="number" value="0">
+      <h3>Agregar Items</h3>
+      <label>Item</label><select id="pd_item_sel"></select>
+      <label>Embalaje</label><select id="pd_pack_sel"></select>
+      <label>Cant. embalaje</label><input id="pd_pack_qty" type="number" value="1">
+      <label>Kilos</label><input id="pd_kilos" type="number">
+      <button id="pd_add_item" class="primary">Agregar producto</button>
+      <ul id="pd_items_list"></ul>
+      <div style="margin-top:10px">
+        <button id="btnAddPedido" class="primary">Guardar Pedido</button>
+        <button id="btnExportPedidoCSV" class="primary">Exportar CSV</button>
+        <button id="btnExportPedidoIMG" class="primary">Exportar Imagen</button>
       </div>
-      <div class="card">
-        <h3>Listado de Pedidos (historial)</h3>
-        <ul id="pedidosList"></ul>
-      </div>
+      <h3>Historial</h3>
+      <ul id="pedidosList"></ul>
+    </section>
+
+    <section id="search" class="card hidden">
+      <h2>Buscar</h2>
+      <input id="globalSearch" placeholder="Buscar...">
+      <div id="globalResults"></div>
     </section>
   </main>
 </div>
 
-<!-- xlsx lib -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<!-- application scripts -->
-<script type="module" src="js/state.js"></script>
-<script type="module" src="js/ui.js"></script>
-<script type="module" src="js/pedidos.js"></script>
-<script type="module" src="js/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="js/state.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/fundaciones.js"></script>
+<script src="js/items.js"></script>
+<script src="js/conductores.js"></script>
+<script src="js/pedidos.js"></script>
+<script src="js/sync.js"></script>
+<script>
+  // basic init
+  document.addEventListener('DOMContentLoaded', function(){
+    setupSidebarToggle();
+    initApp && initApp();
+    // attempt load from assets/BASE DE DATOS.xlsx (optional)
+    if(window.initFromExcelAssets) initFromExcelAssets();
+    if(window.startAutoSync) startAutoSync();
+  });
+</script>
 </body>
 </html>
