@@ -1,1 +1,2 @@
-Mini ERP portable - package. See README in ZIP for details.
+# ERP Corabastos V4
+Proyecto organizado listo para GitHub.
