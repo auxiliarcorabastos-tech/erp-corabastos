@@ -1,1 +1,0 @@
-// JS placeholder. Reemplaza con tu script completo.
