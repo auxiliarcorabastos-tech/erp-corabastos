@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ERP Corabastos — V4 (Estable)</title>
+<style>
+:root{--bg:#f4f6f9;--panel:#0b1220;--accent:#0a57ff;--card:#ffffff}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:#0f172a}
+header{background:#071025;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+.app{display:flex;height:calc(100vh - 50px)}
+#sidebar{width:240px;background:var(--panel);color:#fff;padding:16px;display:flex;flex-direction:column;gap:8px}
+#sidebar button{background:transparent;border:0;color:#cbd5e1;text-align:left;padding:8px;border-radius:6px;cursor:pointer}
+#sidebar button:hover{background:rgba(255,255,255,0.04)}
+#sidebar button.active{background:rgba(255,255,255,0.06);color:#fff;font-weight:700}
+main{flex:1;padding:20px;overflow:auto}
+.card{background:var(--card);padding:16px;border-radius:10px;box-shadow:0 4px 14px rgba(0,0,0,0.06);margin-bottom:16px}
+input,select,textarea{width:100%;padding:8px;margin-top:6px;border-radius:6px;border:1px solid #d0d6e1}
+button.primary{background:var(--accent);color:#fff;padding:8px 12px;border:0;border-radius:6px;cursor:pointer}
+.small{font-size:13px;color:#6b7280}.hidden{display:none!important}
+.table{width:100%;border-collapse:collapse}.table th,.table td{padding:8px;border-bottom:1px solid #eef4fb;text-align:left}
+.modal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);z-index:60}
+.modal .card{width:100%;max-width:420px}
+@media(max-width:900px){#sidebar{position:fixed;left:0;top:50px;bottom:0;transform:translateX(-100%);transition:transform .22s;z-index:40}#sidebar.open{transform:translateX(0)}main{padding:12px}}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+<header>
+  <div style="display:flex;align-items:center;gap:12px">
+    <button id="btnMenu" class="primary" style="background:transparent;border:0;color:#fff">☰</button>
+    <div style="font-size:18px;font-weight:700">ERP Corabastos</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="small" id="headerUser">Invitado</div>
+    <button id="btnLogout" class="primary hidden">Cerrar sesión</button>
+  </div>
+</header>
+<div class="app">
+  <aside id="sidebar">
+    <button data-sec="dashboard">Dashboard</button>
+    <button data-sec="fundaciones">Fundaciones</button>
+    <button data-sec="items">Items</button>
+    <button data-sec="conductores">Conductores</button>
+    <button data-sec="recibos">Pedidos</button>
+    <button data-sec="search">Buscar</button>
+    <hr style="border-color:rgba(255,255,255,0.04);">
+    <button data-sec="usuarios">Mi Cuenta</button>
+    <button data-sec="admin_users" id="btnAdminUsers">Usuarios (Admin)</button>
+    <button data-sec="auditoria">Auditoría</button>
+    <button data-sec="seguimiento">Seguimiento</button>
+    <button data-sec="roles">Gestión Roles</button>
+  </aside>
+  <main id="main">
+
+    <section id="dashboard" class="card">
+      <h2>Bienvenido</h2>
+      <p class="small">Versión estable. Inicie sesión para usar el sistema.</p>
+    </section>
+
+    <section id="fundaciones" class="hidden">
+      <h2>Fundaciones</h2>
+      <div class="card">
+        <h3>Crear Fundación</h3>
+        <label>NIT</label><input id="f_nit">
+        <label>Nombre</label><input id="f_name">
+        <button id="btnFundCreate" class="primary" style="margin-top:10px">Crear Fundación</button>
+      </div>
+
+      <div class="card">
+        <h3>Añadir Punto de Envío</h3>
+        <label>Fundación</label><select id="selFund"></select>
+        <label>Barrio</label><input id="p_barrio">
+        <label>Localidad</label><input id="p_localidad">
+        <label>Ciudad</label><input id="p_ciudad">
+        <label>Teléfono 1</label><input id="p_tel1">
+        <label>Teléfono 2</label><input id="p_tel2">
+        <label>Encargada</label><input id="p_encargada">
+        <button id="btnPointCreate" class="primary" style="margin-top:10px">Agregar Punto</button>
+      </div>
+
+      <div class="card">
+        <h3>Cargar Fundaciones desde Excel</h3>
+        <input id="excel_fundaciones" type="file" accept=".xlsx,.xls">
+        <button id="btnImportFund" class="primary" style="margin-top:10px">Importar Excel</button>
+      </div>
+
+      <div class="card">
+        <h3>Listado</h3>
+        <input id="searchFund" placeholder="Buscar fundaciones..." style="margin-bottom:10px">
+        <div id="fundList"></div>
+      
+      </div>
+    </section>
+
+    <section id="items" class="hidden">
+      <h2>Items</h2>
+      <div class="card">
+        <label>Referencia</label><input id="item_ref">
+        <label>Nombre</label><input id="item_name">
+        <label>Descripción</label><input id="item_desc">
+        <label>Precio</label><input id="item_price" type="number">
+        <button id="btnCreateItem" class="primary" style="margin-top:10px">Agregar Item</button>
+      </div>
+
+      <div class="card">
+        <h3>Cargar Items desde Excel</h3>
+        <input id="excel_items" type="file" accept=".xlsx,.xls">
+        <button id="btnImportItems" class="primary" style="margin-top:10px">Importar Excel</button>
+      </div>
+
+      <div class="card">
+        <h3>Gestionar Embalajes</h3>
+        <input id="new_pack" placeholder="Nuevo embalaje">
+        <button id="btnAddPack" class="primary" style="margin-top:10px">Agregar</button>
+        <ul id="packList" class="small" style="padding-left:18px;margin-top:10px"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Listado de Items</h3>
+        <input id="searchItems" placeholder="Buscar..." style="margin-bottom:10px">
+        <table class="table" id="itemsTable">
+          <thead>
+            <tr><th>Ref</th><th>Nombre</th><th>Descripción</th><th>Precio</th><th></th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="conductores" class="hidden">
+      <h2>Conductores y Placas</h2>
+      <div class="card">
+        <label>Nombre</label><input id="drv_name">
+        <label>Documento</label><input id="drv_doc">
+        <label>Teléfono</label><input id="drv_tel">
+        <label>Empresa</label><input id="drv_cmp">
+        <button id="btnAddDriver" class="primary" style="margin-top:10px">Agregar Conductor</button>
+      </div>
+
+      <div class="card">
+        <h3>Agregar Placa</h3>
+        <label>Placa</label><input id="pl_plate">
+        <label>Tipo</label><input id="pl_type">
+        <button id="btnAddPlate" class="primary" style="margin-top:10px">Agregar</button>
+      </div>
+
+      <div class="card">
+        <h3>Conductores</h3>
+        <input id="searchDrivers" placeholder="Buscar..." style="margin-bottom:10px">
+        <ul id="driversList"></ul>
+      </div>
+
+      <div class="card">
+        <h3>Placas</h3>
+        <input id="searchPlates" placeholder="Buscar..." style="margin-bottom:10px">
+        <ul id="platesList"></ul>
+      </div>
+    </section>
+
+    <section id="search" class="hidden">
+      <h2>Buscador Global</h2>
+      <input id="globalSearch" placeholder="Buscar..." style="margin-bottom:10px">
+      <div id="globalResults"></div>
+    </section>
+
+    <section id="recibos" class="hidden">
+      <h2>Pedidos</h2>
+      <div class="card">
+        <h3>Crear Pedido</h3>
+        <label>NIT Fundación</label><input id="pd_nit">
+        <div id="pd_fund_info" class="small" style="margin-top:6px"></div>
+        <label>Fundación (seleccione)</label><select id="pd_fund"></select>
+        <label>Punto de Envío</label><select id="pd_point"></select>
+        <label>Conductor</label><select id="pd_driver"></select>
+        <label>Placa</label><select id="pd_plate"></select>
+        <label>Peaje</label><input id="pd_peaje" type="number">
+        <label>Costo de Transporte</label><input id="pd_trans" type="number">
+
+        <h3 style="margin-top:12px">Agregar Items</h3>
+        <label>Item</label>
+        <select id="pd_item_sel" style="width:100%;margin-bottom:6px"></select>
+        <label>Embalaje (opcional)</label>
+        <select id="pd_pack_sel" style="width:100%;margin-bottom:6px"></select>
+        <label>Cantidad de Embalaje</label>
+        <input id="pd_pack_qty" type="number" placeholder="Cant. Embalaje" value="1">
+        <label>Kilos (obligatorio)</label>
+        <input id="pd_kilos" type="number" placeholder="Kilos (obligatorio)">
+        <button id="pd_add_item" class="primary" style="margin-bottom:10px">Agregar producto</button>
+        <ul id="pd_items_list" style="margin-top:10px"></ul>
+
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button id="btnAddPedido" class="primary">Guardar Pedido</button>
+          <button id="btnExportPedidoCSV" class="primary">Exportar CSV</button>
+          <button id="btnExportPedidoIMG" class="primary">Exportar Imagen</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Listado de Pedidos (historial)</h3>
+        <input id="searchPedidos" placeholder="Buscar..." style="margin-bottom:10px">
+        <ul id="pedidosList"></ul>
+      </div>
+    </section>
+
+    <section id="usuarios" class="hidden">
+      <h2>Mi Cuenta</h2>
+      <div class="card">
+        <label>Usuario (no editable)</label>
+        <input id="usr_username" disabled>
+        <label>Nombre completo</label><input id="usr_fullname">
+        <label>Teléfono</label><input id="usr_phone">
+        <label>Correo</label><input id="usr_email">
+        <label>Contraseña</label><input id="usr_password" type="password">
+        <button id="btnUserPassSave" class="primary" style="margin-top:10px">Guardar</button>
+      </div>
+    </section>
+
+    <section id="admin_users" class="hidden">
+      <h2>Gestión de Usuarios (Admin)</h2>
+      <div class="card">
+        <label>Nuevo Usuario</label>
+        <input id="adm_new_user" placeholder="Usuario">
+        <label>Contraseña</label>
+        <input id="adm_new_pass" type="password">
+        <label>Rol</label>
+        <select id="adm_new_role"><option value="general">General</option><option value="admin">Administrador</option><option value="lector">Lector</option></select>
+        <button id="adm_add_user" class="primary" style="margin-top:10px">Crear Usuario</button>
+      </div>
+      <div class="card">
+        <h3>Usuarios Registrados</h3>
+        <ul id="adm_user_list" class="small" style="padding-left:18px"></ul>
+      </div>
+    </section>
+
+    <section id="auditoria" class="hidden">
+      <h2>Auditoría</h2>
+      <div class="card">
+        <label>Filtrar por usuario</label>
+        <input id="auditUserFilter" placeholder="Usuario">
+        <label>Filtrar por fecha</label>
+        <input id="auditDateFilter" type="date">
+      </div>
+      <div id="auditList" class="card small"></div>
+    </section>
+
+    <section id="seguimiento" class="hidden">
+      <h2>Seguimiento</h2>
+      <div class="card">
+        <table class="table" id="segTable"><thead><tr><th>Fecha</th><th>Fundación</th><th>Barrio</th><th>Kilos</th><th>Conductor</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <section id="roles" class="hidden">
+      <h2>Roles</h2>
+      <div class="card small">Gestión de roles disponible para administrador.</div>
+    </section>
+
+  </main>
+</div>
+
+<!-- LOGIN modal (required) -->
+<div id="loginModal" class="modal">
+  <div class="card">
+    <h3>Iniciar sesión</h3>
+    <label>Usuario</label><input id="login_user">
+    <label>Contraseña <small style="color:#6b7280">(<a href="#" id="togglePass">mostrar</a>)</small></label>
+    <input id="login_pass" type="password">
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+      <button id="btnLogin" class="primary">Ingresar</button>
+      <div id="loginStatus" class="small" style="color:#6b7280"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+  const $ = id => document.getElementById(id);
+  // state init
+  let state = JSON.parse(localStorage.getItem('erp_state')||'null') || {};
+  state.users = Array.isArray(state.users)? state.users : [
+    {username:'admin',pass:'3134630773',role:'admin',fullname:'Administrador'},
+    {username:'jgarnica',pass:'12345',role:'general',fullname:''},
+    {username:'jnonato',pass:'12345',role:'general',fullname:''},
+    {username:'salidas',pass:'12345',role:'general',fullname:''},
+    {username:'mcarabali',pass:'12345',role:'general',fullname:''}
+  ];
+  state.currentUser = state.currentUser || null;
+  state.foundations = Array.isArray(state.foundations)? state.foundations : [];
+  state.items = Array.isArray(state.items)? state.items : [];
+  state.packs = Array.isArray(state.packs)? state.packs : ['Atado','Bulto','Canastilla','Caja','Unidad'];
+  state.drivers = Array.isArray(state.drivers)? state.drivers : [];
+  state.plates = Array.isArray(state.plates)? state.plates : [];
+  state.pedidos = Array.isArray(state.pedidos)? state.pedidos : [];
+  state.audit = Array.isArray(state.audit)? state.audit : [];
+  function save(){ localStorage.setItem('erp_state', JSON.stringify(state)); }
+
+  function registrarAccion(accion,detalle){ const rec={fecha:new Date().toISOString(),usuario: state.currentUser?state.currentUser.username:'-',accion,detalle}; state.audit.unshift(rec); save(); renderAudit(); }
+
+  // UI helpers
+  function showSection(id){ document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden')); const el = $(id); if(el) el.classList.remove('hidden'); document.querySelectorAll('#sidebar button').forEach(b=>b.classList.remove('active')); const btn=document.querySelector('#sidebar button[data-sec="'+id+'"]'); if(btn) btn.classList.add('active'); }
+  document.querySelectorAll('#sidebar button').forEach(b=> b.addEventListener('click', ()=> { showSection(b.dataset.sec); document.getElementById('sidebar').classList.remove('open'); }));
+  $('btnMenu').addEventListener('click', ()=> document.getElementById('sidebar').classList.toggle('open'));
+
+  // Cerrar sidebar al hacer clic fuera
+  document.addEventListener('click', (e)=>{
+    const sb = document.getElementById('sidebar');
+    const btn = document.getElementById('btnMenu');
+    if(sb.classList.contains('open') && !sb.contains(e.target) && e.target!==btn){
+      sb.classList.remove('open');
+    }
+  });
+
+  // Login modal behaviors
+  function openLogin(){ $('loginModal').classList.remove('hidden'); }
+  function closeLogin(){ $('loginModal').classList.add('hidden'); }
+
+  // toggle password
+  $('togglePass').addEventListener('click', function(ev){ ev.preventDefault(); const p=$('login_pass'); p.type = p.type === 'password' ? 'text' : 'password'; this.textContent = p.type==='password'? 'mostrar':'ocultar'; });
+
+  // require login at start
+  function setCurrentUser(user){ state.currentUser = user; save(); $('headerUser').innerText = user.username + ' ('+user.role+')'; $('btnLogout').classList.remove('hidden'); if(user.role !== 'admin') { $('btnAdminUsers').style.display = 'none'; } else { $('btnAdminUsers').style.display = 'block'; } closeLogin(); renderAll(); showSection('dashboard'); }
+
+  // login handler
+  $('btnLogin').addEventListener('click', function(){ const u = $('login_user').value.trim(); const p = $('login_pass').value.trim(); if(!u || !p){ alert('Usuario y clave requeridos'); return; } $('loginStatus').innerText = 'Iniciando...'; setTimeout(()=>{ const found = state.users.find(x=>x.username===u && x.pass===p); if(!found){ alert('Usuario o clave incorrectos'); $('loginStatus').innerText=''; return; } setCurrentUser(found); registrarAccion('login',{user:u}); $('login_user').value=''; $('login_pass').value=''; $('loginStatus').innerText=''; },600); });
+
+  // logout
+  $('btnLogout').addEventListener('click', function(){ if(confirm('Cerrar sesión?')){ state.currentUser = null; save(); $('headerUser').innerText = 'Invitado'; $('btnLogout').classList.add('hidden'); openLogin(); } });
+
+  // If no user, force login
+  if(!state.currentUser){ openLogin(); } else { setCurrentUser(state.currentUser); }
+
+  // Fillers and renderers
+  function fillFundSelects(){ const sel = $('selFund'); if(sel){ sel.innerHTML=''; state.foundations.forEach((f,i)=> sel.appendChild(new Option(f.name+' ('+f.nit+')', i))); } const pf = $('pd_fund'); if(pf){ pf.innerHTML=''; state.foundations.forEach((f,i)=> pf.appendChild(new Option(f.name, i))); fillPedidoPoints(); } }
+
+  function fillPedidoPoints(){ const sel=$('pd_point'); if(!sel) return; sel.innerHTML=''; const fi=Number($('pd_fund').value||0); const f= state.foundations[fi]; if(f && Array.isArray(f.points)){ f.points.forEach((p,i)=> sel.appendChild(new Option(p.barrio+' ('+p.localidad+' - '+p.ciudad+')', i))); } }
+  function fillItemSelect(){ const sel=$('pd_item_sel'); if(!sel) return; sel.innerHTML=''; state.items.forEach((it,i)=> sel.appendChild(new Option(it.name+' - $'+it.price, i))); }
+  function fillPackSelect(){ const sel=$('pd_pack_sel'); if(!sel) return; sel.innerHTML=''; sel.appendChild(new Option('','')); state.packs.forEach(p=> sel.appendChild(new Option(p,p))); }
+  function fillDriverPlate(){ const sd=$('pd_driver'); const sp=$('pd_plate'); if(sd){ sd.innerHTML=''; state.drivers.forEach((d,i)=> sd.appendChild(new Option(d.name,i))); } if(sp){ sp.innerHTML=''; state.plates.forEach((p,i)=> sp.appendChild(new Option(p.plate,i))); } }
+
+  function renderFund(){ const box=$('fundList'); if(!box) return; box.innerHTML=''; state.foundations.forEach((f,idx)=>{ const d=document.createElement('div'); d.className='card'; d.style.marginBottom='8px'; let html = '<strong>'+f.name+'</strong><div class="small">NIT: '+f.nit+'</div>'; if(Array.isArray(f.points) && f.points.length){ html += '<div style="margin-top:8px">'; f.points.forEach((p)=>{ html += '<div class="small">'+p.barrio+' — '+p.localidad+' — '+p.ciudad+' — '+(p.encargada||'')+'</div>'; }); html += '</div>'; } else { html += '<div class="small">Sin puntos</div>'; } d.innerHTML = html; box.appendChild(d); }); }
+
+  function renderItems(){ const tbody = $('itemsTable').querySelector('tbody'); tbody.innerHTML=''; state.items.forEach((it,i)=>{ const tr=document.createElement('tr'); tr.innerHTML = '<td>'+it.name+'</td><td>'+(it.desc||'')+'</td><td>$'+(it.price||0)+'</td><td><button data-i="'+i+'" class="delItem">Eliminar</button></td>'; tbody.appendChild(tr); }); document.querySelectorAll('.delItem').forEach(btn=> btn.addEventListener('click', function(){ if(!state.currentUser || state.currentUser.role!=='admin'){ return alert('Solo admin puede eliminar'); } const idx=Number(this.dataset.i); state.items.splice(idx,1); save(); renderItems(); registrarAccion('eliminar_item',{index:idx}); })); }
+
+  function renderPacks(){ const ul=$('packList'); if(!ul) return; ul.innerHTML=''; state.packs.forEach((p,i)=>{ const li=document.createElement('li'); li.textContent = p + ' '; const del=document.createElement('button'); del.textContent='Eliminar'; del.style.marginLeft='8px'; del.addEventListener('click', ()=>{ if(!state.currentUser || state.currentUser.role!=='admin') return alert('Solo admin'); state.packs.splice(i,1); save(); renderPacks(); }); li.appendChild(del); ul.appendChild(li); }); }
+
+  function renderDrivers(){ const ul=$('driversList'); if(!ul) return; ul.innerHTML=''; state.drivers.forEach((d,i)=>{ const li=document.createElement('li'); li.textContent = d.name + ' — ' + (d.document||''); ul.appendChild(li); }); }
+  function renderPlates(){ const ul=$('platesList'); if(!ul) return; ul.innerHTML=''; state.plates.forEach((p,i)=>{ const li=document.createElement('li'); li.textContent = p.plate + ' ('+(p.type||'')+')'; ul.appendChild(li); }); }
+
+  function renderPedidos(){ const ul=$('pedidosList'); if(!ul) return; ul.innerHTML=''; state.pedidos.forEach((p,idx)=>{ const li=document.createElement('li'); li.style.marginBottom='8px'; const created = new Date(p.createdAt).toLocaleString(); li.innerHTML = '<strong>'+p.id+'</strong> — '+p.foundation+' — $'+(p.total||0)+'<div class="small">'+created+'</div><div class="small">Llegada: '+(p.horaLlegada||'—')+' | Salida: '+(p.horaSalida||'—')+' | Conductor: '+(p.driver?.name||'—')+'</div>'; 
+    const btnH=document.createElement('button'); btnH.textContent='Registrar Horas'; btnH.className='primary'; btnH.style.marginTop='6px'; btnH.addEventListener('click', ()=>{ const hL=prompt('Hora de llegada (HH:MM)', p.horaLlegada||''); if(hL===null) return; const hS=prompt('Hora de salida (HH:MM)', p.horaSalida||''); if(hS===null) return; p.horaLlegada=hL; p.horaSalida=hS; save(); renderPedidos(); registrarAccion('registrar_horas',{id:p.id,hL,hS}); });
+    const btnC=document.createElement('button'); btnC.textContent='Copiar'; btnC.className='primary'; btnC.style.marginLeft='8px'; btnC.addEventListener('click', ()=>{ const nit = prompt('NIT de la nueva fundación'); if(!nit) return; const f = state.foundations.find(x=>x.nit===nit); if(!f) return alert('NIT no registrado'); const newPedido = JSON.parse(JSON.stringify(p)); newPedido.id = 'PED-'+Date.now(); newPedido.foundation = f.name; newPedido.foundationNIT = f.nit; state.pedidos.unshift(newPedido); save(); renderPedidos(); registrarAccion('copiar_pedido',{base:p.id,new:newPedido.id}); alert('Pedido copiado: '+newPedido.id); });
+
+    const btnE=document.createElement('button'); btnE.textContent='Exportar PNG/PDF'; btnE.className='primary'; btnE.style.marginLeft='8px'; btnE.addEventListener('click', ()=>{ exportPedidoAsImageAndPDF(p); });
+
+    li.appendChild(btnH); li.appendChild(btnC); li.appendChild(btnE); ul.appendChild(li);
+  }); }
+
+  // Build export (Option B): generate image/pdf from pedido data without visible template
+  function exportPedidoAsImageAndPDF(pedido){
+    // Create offscreen container
+    const wrap = document.createElement('div');
+    wrap.style.width = '1123px'; // A4 landscape px approx at 96dpi (11.69in*96)
+    wrap.style.minHeight = '794px';
+    wrap.style.background = '#fff';
+    wrap.style.padding = '28px';
+    wrap.style.boxSizing = 'border-box';
+    wrap.style.fontFamily = 'Inter, Arial, sans-serif';
+    wrap.style.color = '#0f172a';
+
+    const header = document.createElement('div'); header.style.display='flex'; header.style.justifyContent='space-between'; header.style.alignItems='center';
+    const left = document.createElement('div'); left.innerHTML = '<h2 style="margin:0">Pedido '+pedido.id+'</h2><div class="small">Creado: '+new Date(pedido.createdAt).toLocaleString()+'</div>';
+    const right = document.createElement('div'); right.innerHTML = '<img src="/mnt/data/5b47aa95-e2d3-4254-b4bd-700f8e01c259.png" style="height:64px;object-fit:contain">';
+    header.appendChild(left); header.appendChild(right); wrap.appendChild(header);
+
+    const info = document.createElement('div'); info.style.display='grid'; info.style.gridTemplateColumns='1fr 1fr'; info.style.gap='8px'; info.style.marginTop='12px';
+    info.innerHTML = '<div><b>Fundación:</b> '+(pedido.foundation||'')+'<br><b>NIT:</b> '+(pedido.foundationNIT||'')+'</div>'+
+                     '<div><b>Punto / Dirección:</b> '+(pedido.point? (pedido.point.barrio + ' — '+(pedido.point.localidad||'')+' — '+(pedido.point.ciudad||'')) : '')+'<br><b>Contactos:</b> '+((pedido.point && (pedido.point.tel1||pedido.point.tel2))? (pedido.point.tel1||'') + ' ' + (pedido.point.tel2||'') : '')+'<br><b>Encargada:</b> '+(pedido.point?.encargada||'')+'</div>';
+    wrap.appendChild(info);
+
+    const transport = document.createElement('div'); transport.style.marginTop='12px'; transport.innerHTML = '<b>Conductor:</b> '+(pedido.driver?.name||'--')+' &nbsp; <b>Placa:</b> '+(pedido.driver? (pedido.driver.plate || (pedido.plate? pedido.plate.plate:'')) : (pedido.plate? pedido.plate.plate:''))+'<br><b>Peaje:</b> $'+(pedido.peaje||0)+' &nbsp; <b>Transporte:</b> $'+(pedido.trans||0);
+    wrap.appendChild(transport);
+
+    // Table of items
+    const tbl = document.createElement('table'); tbl.style.width='100%'; tbl.style.borderCollapse='collapse'; tbl.style.marginTop='12px';
+    const thead = document.createElement('thead'); thead.innerHTML = '<tr><th style="border:1px solid #ddd;padding:6px">Item</th><th style="border:1px solid #ddd;padding:6px">Embalaje</th><th style="border:1px solid #ddd;padding:6px">Cantidad</th><th style="border:1px solid #ddd;padding:6px">Kilos</th><th style="border:1px solid #ddd;padding:6px">Precio</th></tr>';
+    tbl.appendChild(thead);
+    const tb = document.createElement('tbody');
+    pedido.items.forEach(it=>{
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td style="border:1px solid #ddd;padding:6px">'+(it.name||'')+'</td>'+
+                     '<td style="border:1px solid #ddd;padding:6px">'+(it.pack||'')+'</td>'+
+                     '<td style="border:1px solid #ddd;padding:6px;text-align:right">'+(it.qty||1)+'</td>'+
+                     '<td style="border:1px solid #ddd;padding:6px;text-align:right">'+(it.kgs||0)+'</td>'+
+                     '<td style="border:1px solid #ddd;padding:6px;text-align:right">$'+(it.price||0)+'</td>';
+      tb.appendChild(tr);
+    });
+    tbl.appendChild(tb);
+    wrap.appendChild(tbl);
+
+    const sumDiv = document.createElement('div'); sumDiv.style.marginTop='12px'; sumDiv.style.textAlign='right'; const subtotal = pedido.items.reduce((s,it)=>s + ((it.price||0)*(it.qty||1)),0); sumDiv.innerHTML = '<div><b>Subtotal:</b> $'+subtotal+'</div><div><b>Peaje:</b> $'+(pedido.peaje||0)+'</div><div><b>Transporte:</b> $'+(pedido.trans||0)+'</div><div style="font-size:18px;margin-top:6px"><b>Total:</b> $'+(pedido.total||0)+'</div>';
+    wrap.appendChild(sumDiv);
+
+    // Render with html2canvas at higher scale
+    document.body.appendChild(wrap); // temporarily add to DOM (offscreen styling handled)
+    wrap.style.position='fixed'; wrap.style.left='200%'; // move offscreen
+
+    html2canvas(wrap, {scale:2}).then(canvas=>{
+      // PNG download
+      const link = document.createElement('a'); link.download = pedido.id + '.png'; link.href = canvas.toDataURL('image/png'); link.click();
+      // Open print window for PDF option
+      const dataUrl = canvas.toDataURL('image/png'); const win = window.open(''); if(win){ win.document.write('<html><head><title>'+pedido.id+'</title></head><body style="margin:0"><img src="'+dataUrl+'" style="width:100%"></body></html>'); win.document.close(); }
+      // cleanup
+      setTimeout(()=>{ document.body.removeChild(wrap); },500);
+      registrarAccion('export_pedido_image',{id:pedido.id});
+    }).catch(err=>{ alert('Error al generar imagen: '+err); document.body.removeChild(wrap); });
+  }
+
+  function renderAudit(){ const box=$('auditList'); if(!box) return; box.innerHTML=''; const uf=$('auditUserFilter').value.trim().toLowerCase(); const df=$('auditDateFilter').value; state.audit.forEach(a=>{ const dstr=new Date(a.fecha).toISOString().slice(0,10); if(uf && !a.usuario.toLowerCase().includes(uf)) return; if(df && dstr!==df) return; const d=document.createElement('div'); d.style.marginBottom='8px'; d.innerHTML='<b>['+new Date(a.fecha).toLocaleString()+'] '+a.usuario+'</b> — '+a.accion+' <div class="small">'+JSON.stringify(a.detalle)+'</div>'; box.appendChild(d); }); }
+$('auditUserFilter').addEventListener('input',renderAudit);
+$('auditDateFilter').addEventListener('change',renderAudit);
+
+  // Fillers
+  fillFundSelects(); fillItemSelect(); fillPackSelect(); fillDriverPlate(); renderFund(); renderItems(); renderPacks(); renderDrivers(); renderPlates(); renderPedidos(); renderAudit();
+
+  // Import Fundaciones Excel
+  $('btnImportFund').addEventListener('click', ()=>{
+    const file = $('excel_fundaciones').files[0];
+    if(!file) return alert('Seleccione un archivo Excel.');
+    const reader = new FileReader();
+    reader.onload = e => {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data,{type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet,{header:1});
+      rows.forEach((r,i)=>{
+        if(i===0) return;
+        const nit = String(r[0]||'').trim();
+        const name = String(r[1]||'').trim();
+        if(!nit||!name) return;
+        if(!state.foundations.some(f=>f.nit===nit)){
+          state.foundations.push({nit,name,points:[]});
+        }
+      });
+      save(); fillFundSelects(); renderFund(); registrarAccion('importar_fund_excel',{cant:rows.length});
+      alert('Fundaciones importadas.');
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  // Import Items Excel
+  $('btnImportItems').addEventListener('click', ()=>{
+    const file = $('excel_items').files[0];
+    if(!file) return alert('Seleccione un archivo Excel.');
+    const reader = new FileReader();
+    reader.onload = e => {
+      const data = new Uint8Array(e.target.result);
+      const wb = XLSX.read(data,{type:'array'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet,{header:1});
+      rows.forEach((r,i)=>{
+        if(i===0) return;
+        const ref = String(r[0]||'').trim();
+        const name = String(r[1]||'').trim();
+        const price = Number(r[2]||0);
+        const desc = String(r[3]||'').trim();
+        if(!ref||!name) return;
+        if(!state.items.some(it=>it.ref===ref)){
+          state.items.push({ref,name,desc,price});
+        }
+      });
+      save(); renderItems(); fillItemSelect(); registrarAccion('importar_items_excel',{cant:rows.length});
+      alert('Items importados.');
+    };
+    reader.readAsArrayBuffer(file);
+  });
+
+  // Handlers
+  $('btnFundCreate').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const nit=$('f_nit').value.trim(); const name=$('f_name').value.trim(); if(!nit||!name) return alert('Complete NIT y Nombre'); state.foundations.push({nit,name,points:[]}); save(); fillFundSelects(); renderFund(); registrarAccion('crear_fundacion',{nit,name}); $('f_nit').value=''; $('f_name').value=''; });
+
+  $('btnPointCreate').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const fi=Number($('selFund').value); const f = state.foundations[fi]; if(!f) return alert('Seleccione fundación'); const p={barrio:$('p_barrio').value.trim(),localidad:$('p_localidad').value.trim(),ciudad:$('p_ciudad').value.trim(),tel1:$('p_tel1').value.trim(),tel2:$('p_tel2').value.trim(),encargada:$('p_encargada').value.trim()}; f.points = f.points || []; f.points.push(p); save(); renderFund(); fillFundSelects(); registrarAccion('crear_punto',{fund:f.name,barrio:p.barrio}); $('p_barrio').value=''; });
+
+  $('btnCreateItem').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const name=$('item_name').value.trim(); if(!name) return alert('Nombre requerido'); const desc=$('item_desc').value.trim(); const price=Number($('item_price').value)||0; state.items.push({name,desc,price}); save(); renderItems(); fillItemSelect(); registrarAccion('crear_item',{name}); $('item_name').value=''; $('item_desc').value=''; $('item_price').value=''; });
+
+  $('btnAddPack').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const v=$('new_pack').value.trim(); if(!v) return alert('Ingrese nombre'); state.packs.push(v); save(); renderPacks(); $('new_pack').value=''; registrarAccion('crear_embalaje',{pack:v}); });
+
+  $('btnAddDriver').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const d={name:$('drv_name').value.trim(),document:$('drv_doc').value.trim(),phone:$('drv_tel').value.trim(),company:$('drv_cmp').value.trim()}; if(!d.name) return alert('Nombre requerido'); state.drivers.push(d); save(); renderDrivers(); fillDriverPlate(); registrarAccion('crear_conductor',d); $('drv_name').value=''; $('drv_doc').value=''; $('drv_tel').value=''; $('drv_cmp').value=''; });
+
+  $('btnAddPlate').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const p={plate:$('pl_plate').value.trim(),type:$('pl_type').value.trim()}; if(!p.plate) return alert('Placa requerida'); state.plates.push(p); save(); renderPlates(); fillDriverPlate(); registrarAccion('crear_placa',p); $('pl_plate').value=''; $('pl_type').value=''; });
+
+  // Pedido flow
+  let currentPedidoItems = [];
+  function refreshPdItems(){ const ul=$('pd_items_list'); if(!ul) return; ul.innerHTML=''; currentPedidoItems.forEach((it,idx)=>{ const li=document.createElement('li'); li.style.marginBottom='6px'; li.textContent = it.name + ' x' + (it.qty||1) + ' — ' + (it.kgs? it.kgs+'kg':'' ) + ' — $'+(it.price||0); const del=document.createElement('button'); del.textContent='Eliminar'; del.style.marginLeft='8px'; del.addEventListener('click', ()=>{ currentPedidoItems.splice(idx,1); refreshPdItems(); }); li.appendChild(del); ul.appendChild(li); }); }
+
+  $('pd_add_item').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const idx = Number($('pd_item_sel').value); if(isNaN(idx) || !state.items[idx]) return alert('Seleccione item'); const pack = $('pd_pack_sel').value || ''; const packQty = Number($('pd_pack_qty').value)||0; const kgs = Number($('pd_kilos').value); if(!kgs) return alert('Kilos obligatorios'); const it = state.items[idx]; const qty = packQty || 1; currentPedidoItems.push({name:it.name,price:it.price,qty,pack,kgs}); refreshPdItems(); });
+
+  $('pd_fund').addEventListener('change', ()=> fillPedidoPoints());
+
+  $('btnAddPedido').addEventListener('click', ()=>{ if(!state.currentUser) return alert('Inicie sesión'); const fi=Number($('pd_fund').value); const f=state.foundations[fi]; if(!f) return alert('Seleccione fundación'); const pi=Number($('pd_point').value); const point=(f.points||[])[pi]; if(!point) return alert('Seleccione punto'); if(currentPedidoItems.length===0) return alert('Agregue items'); const peaje=Number($('pd_peaje').value)||0; const trans=Number($('pd_trans').value)||0; const subtotal=currentPedidoItems.reduce((s,it)=>s+(it.price||0)*(it.qty||1),0); const total=subtotal+peaje+trans; const pedido = { id:'PED-'+Date.now(), foundation:f.name, foundationNIT:f.nit, point, items: currentPedidoItems.slice(), peaje, trans, total, driver:null, createdAt:new Date().toISOString() }; state.pedidos.unshift(pedido); save(); registrarAccion('crear_pedido',{id:pedido.id,foundation:f.name,total}); currentPedidoItems=[]; refreshPdItems(); renderPedidos(); alert('Pedido creado: '+pedido.id); });
+
+  $('btnExportPedidoCSV').addEventListener('click', ()=>{ const rows=[['id','fundacion','punto','item','pack','qty','kgs','precio','peaje','trans','total','fecha']]; state.pedidos.forEach(p=> p.items.forEach(it=> rows.push([p.id,p.foundation,p.point?.barrio||'',it.name,it.pack,it.qty,it.kgs,it.price,p.peaje,p.trans,p.total,p.createdAt]))); const csv = rows.map(r=> r.map(c=> '"'+(''+c).replace(/"/g,'""')+'"').join(',')).join('\n'); const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='pedidos.csv'; a.click(); URL.revokeObjectURL(url); });
+
+  // Export Pedido Imagen
+  document.getElementById('btnExportPedidoIMG').addEventListener('click', ()=>{
+    const node = document.getElementById('pedidosList');
+    html2canvas(node).then(canvas=>{
+      const link = document.createElement('a');
+      link.download = 'pedidos.png';
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  });
+
+  // Admin users
+  function renderAdminUsers(){ const ul=$('adm_user_list'); if(!ul) return; ul.innerHTML=''; state.users.forEach((u,i)=>{ const li=document.createElement('li'); li.style.marginBottom='8px'; li.innerHTML = '<b>'+u.username+'</b> — '+u.role; if(state.currentUser && state.currentUser.role==='admin'){ const btnE=document.createElement('button'); btnE.textContent='Editar'; btnE.style.marginLeft='8px'; btnE.addEventListener('click', ()=>{ const newRole=prompt('Rol (admin/general/lector)',u.role); if(newRole){ u.role=newRole; save(); renderAdminUsers(); registrarAccion('editar_usuario',{username:u.username,role:newRole}); } }); const btnD=document.createElement('button'); btnD.textContent='Eliminar'; btnD.style.marginLeft='8px'; btnD.addEventListener('click', ()=>{ if(u.username==='admin') return alert('No eliminar admin principal'); if(!confirm('Eliminar usuario?')) return; state.users.splice(i,1); save(); renderAdminUsers(); registrarAccion('eliminar_usuario',{username:u.username}); }); li.appendChild(btnE); li.appendChild(btnD); } ul.appendChild(li); }); }
+
+  $('adm_add_user').addEventListener('click', ()=>{ if(!state.currentUser || state.currentUser.role!=='admin') return alert('Solo admin'); const user=$('adm_new_user').value.trim(); const pass=$('adm_new_pass').value.trim(); const role=$('adm_new_role').value; if(!user||!pass) return alert('Complete'); if(state.users.some(x=>x.username===user)) return alert('Usuario existe'); state.users.push({username:user,pass,role,fullname:'',phone:'',email:''}); save(); renderAdminUsers(); registrarAccion('crear_usuario',{username:user,role}); alert('Usuario creado'); });
+
+  // Render everything helper
+  function renderAll(){ fillFundSelects(); fillItemSelect(); fillPackSelect(); fillDriverPlate(); renderFund(); renderItems(); renderPacks(); renderDrivers(); renderPlates(); renderPedidos(); renderAudit(); renderAdminUsers(); }
+
+  // initial render (if logged)
+  if(state.currentUser){ setCurrentUser(state.currentUser); } else { openLogin(); }
+
+});
+</script>
+</body>
+</html>
